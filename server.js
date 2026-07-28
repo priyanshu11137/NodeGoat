@@ -75,8 +75,7 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
+        resave: true,
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -84,7 +83,6 @@ MongoClient.connect(db, (err, db) => {
             maxAge: 24 * 60 * 60 * 1000,
             domain: process.env.COOKIE_DOMAIN || undefined
         }
-        */
     }));
 
     /*
