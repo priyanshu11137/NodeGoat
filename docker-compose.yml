@@ -13,5 +13,11 @@ services:
   mongo:
     image: mongo:4.4
     user: mongodb
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/mongodb
+    security_opt:
+      - no-new-privileges:true
     expose:
       - 27017
