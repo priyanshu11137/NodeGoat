@@ -80,9 +80,21 @@ MongoClient.connect(db, (err, db) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
         secret: cookieSecret,
+        // Use generic cookie name (fixes default session name disclosure)
+        name: "sessionId",
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
+        resave: true,
+        cookie: {
+            httpOnly: true,
+            // Set secure: true when running behind HTTPS; false is acceptable for this HTTP demo app
+            secure: false,
+            path: "/",
+            // 1 hour expiry
+            maxAge: 3600000,
+            // Do not set domain attribute for single-domain apps (prevents cross-subdomain sharing)
+            domain: false
+        }
         /*
         // Fix for A5 - Security MisConfig
         // Use generic cookie name
