@@ -70,6 +70,7 @@
                         <div class="panel-body">
 
                             <form method="post" role="form" method="post">
+                                <input type="hidden" name="_csrf" value="{{csrftoken}}"></input>
                                 <div class="form-group">
                                     <label for="userName">User Name</label>
                                     <input type="text" class="form-control" id="userName" value="{{userName}}" name="userName" placeholder="Enter user name">
