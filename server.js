@@ -86,7 +86,8 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         cookie: {
             domain: process.env.SESSION_DOMAIN || "",
-            path: "/"
+            path: "/",
+            maxAge: parseInt(process.env.SESSION_MAX_AGE) || 3600000
         }
     }));
 
