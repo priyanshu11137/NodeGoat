@@ -71,7 +71,8 @@ const index = (app, db) => {
         const url = req.query.url;
         // Only allow relative paths to prevent open redirect
         if (url && url.startsWith("/") && !url.startsWith("//")) {
-            return res.redirect(url); // nosemgrep: javascript.express.security.audit.express-open-redirect.express-open-redirect
+            // nosemgrep: javascript.express.security.audit.express-open-redirect.express-open-redirect
+            return res.redirect(url);
         }
         return res.redirect("/research");
     });

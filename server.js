@@ -12,7 +12,8 @@ const MongoClient = require("mongodb").MongoClient; // Driver for connecting to 
 const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
-const app = express(); // Web framework to handle routing requests // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage
+// nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
+const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 /*
@@ -75,7 +76,10 @@ MongoClient.connect(db, (err, db) => {
     }));
 
     // Enable session management using express middleware
-    app.use(session({ // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain,javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires,javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-secure
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-secure
+    app.use(session({
         name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
@@ -131,7 +135,8 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Insecure HTTP connection
-    http.createServer(app).listen(port, () => { // nosemgrep: problem-based-packs.insecure-transport.js-node.using-http-server.using-http-server
+    // nosemgrep: problem-based-packs.insecure-transport.js-node.using-http-server.using-http-server
+    http.createServer(app).listen(port, () => {
         console.log(`Express http server listening on port ${port}`);
     });
 
