@@ -76,6 +76,7 @@ MongoClient.connect(db, (err, db) => {
 
     // Enable session management using express middleware
     app.use(session({
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
