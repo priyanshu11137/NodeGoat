@@ -17,5 +17,7 @@ services:
     tmpfs:
       - /tmp
       - /var/run/mongodb
+    security_opt:
+      - no-new-privileges:true
     expose:
       - 27017
