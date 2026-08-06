@@ -87,7 +87,8 @@ MongoClient.connect(db, (err, db) => {
         cookie: {
             domain: process.env.SESSION_DOMAIN || "",
             path: "/",
-            maxAge: parseInt(process.env.SESSION_MAX_AGE) || 3600000
+            maxAge: parseInt(process.env.SESSION_MAX_AGE) || 3600000,
+            httpOnly: true
         }
     }));
 
