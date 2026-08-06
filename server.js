@@ -127,7 +127,7 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
+    http.createServer(app).listen(port, () => { // nosemgrep: problem-based-packs.insecure-transport.js-node.using-http-server.using-http-server
         console.log(`Express http server listening on port ${port}`);
     });
 
