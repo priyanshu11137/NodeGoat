@@ -83,7 +83,9 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         cookie: {
             httpOnly: true,
-            secure: false
+            secure: false,
+            path: "/",
+            maxAge: 3600000
         }
     }));
 
