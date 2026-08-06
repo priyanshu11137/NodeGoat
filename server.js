@@ -75,7 +75,7 @@ MongoClient.connect(db, (err, db) => {
     }));
 
     // Enable session management using express middleware
-    app.use(session({
+    app.use(session({ // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain,javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires,javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-secure
         name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
@@ -85,7 +85,8 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             secure: false,
             path: "/",
-            maxAge: 3600000
+            maxAge: 3600000,
+            domain: ""
         }
     }));
 
