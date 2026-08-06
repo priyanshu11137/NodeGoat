@@ -75,7 +75,9 @@ const index = (app, db) => {
             "https://www.npmjs.com"
         ];
         const redirectUrl = req.query.url;
-        const isAllowed = allowedUrls.some(allowed => redirectUrl && redirectUrl.startsWith(allowed));
+        const isAllowed = allowedUrls.some(
+            allowed => redirectUrl && redirectUrl.startsWith(allowed)
+        );
         if (!isAllowed) {
             return res.status(400).send("Invalid redirect URL");
         }
