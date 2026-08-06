@@ -68,17 +68,18 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        const allowedUrls = [
+        const allowedExternal = [
             "https://owasp.org",
             "https://nodejs.org",
             "https://expressjs.com",
             "https://www.npmjs.com"
         ];
         const redirectUrl = req.query.url;
-        const isAllowed = allowedUrls.some(
+        const isRelative = redirectUrl && /^\/[^/\\]/.test(redirectUrl);
+        const isExternal = allowedExternal.some(
             allowed => redirectUrl && redirectUrl.startsWith(allowed)
         );
-        if (!isAllowed) {
+        if (!isRelative && !isExternal) {
             return res.status(400).send("Invalid redirect URL");
         }
         return res.redirect(redirectUrl);
