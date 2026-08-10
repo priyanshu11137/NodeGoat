@@ -66,25 +66,22 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
-    // Allowlist of approved redirect destinations for learning resources
-    const allowedRedirects = [
-        "https://owasp.org",
-        "https://www.owasp.org",
-        "https://cheatsheetseries.owasp.org",
-        "https://github.com/OWASP"
-    ];
+    // Approved learning resource destinations — keyed by index so no user input
+    // is ever passed directly to res.redirect (prevents open-redirect).
+    const learnTargets = {
+        "owasp": "https://owasp.org",
+        "owasp-www": "https://www.owasp.org",
+        "owasp-cheatsheet": "https://cheatsheetseries.owasp.org",
+        "owasp-github": "https://github.com/OWASP"
+    };
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        const redirectUrl = req.query.url;
-        // Only allow redirects to URLs that start with an approved destination
-        const isAllowed = redirectUrl && allowedRedirects.some(allowed =>
-            redirectUrl.startsWith(allowed)
-        );
-        if (!isAllowed) {
+        const target = learnTargets[req.query.target];
+        if (!target) {
             return res.status(400).send("Redirect not allowed");
         }
-        return res.redirect(redirectUrl); // nosemgrep: javascript.express.security.audit.express-open-redirect
+        return res.redirect(target);
     });
 
     // Research Page

@@ -8,23 +8,23 @@ describe("/learn behaviour", () => {
   });
 
   it("Should redirect if the user has not logged in", () => {
-    cy.visitPage("/learn?url=https://owasp.org");
+    cy.visitPage("/learn?target=owasp");
     cy.url().should("include", "login");
   });
 
   it("Should redirect to an allowed URL when logged in", () => {
     cy.userSignIn();
-    cy.visitPage("/learn?url=https://owasp.org", { failOnStatusCode: false });
+    cy.visitPage("/learn?target=owasp", { failOnStatusCode: false });
     cy.url().should("include", "owasp.org");
   });
 
-  it("Should return 400 when the redirect URL is not on the allowlist", () => {
+  it("Should return 400 when the redirect target is not on the allowlist", () => {
     cy.userSignIn();
-    cy.visitPage("/learn?url=https://evil.com", { failOnStatusCode: false });
+    cy.visitPage("/learn?target=evil", { failOnStatusCode: false });
     cy.contains("Redirect not allowed");
   });
 
-  it("Should return 400 when no redirect URL is provided", () => {
+  it("Should return 400 when no redirect target is provided", () => {
     cy.userSignIn();
     cy.visitPage("/learn", { failOnStatusCode: false });
     cy.contains("Redirect not allowed");
