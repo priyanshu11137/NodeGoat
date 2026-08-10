@@ -79,7 +79,8 @@ const index = (app, db) => {
         try {
             const parsed = new URL(redirectUrl);
             if (ALLOWED_REDIRECT_HOSTS.includes(parsed.hostname)) {
-                return res.redirect(redirectUrl);
+                const safeUrl = parsed.href;
+                return res.redirect(safeUrl);
             }
         } catch (e) {
             // invalid URL — fall through to safe default

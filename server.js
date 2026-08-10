@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require('csurf');
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -20,8 +20,8 @@ const fs = require("fs");
 const https = require("https");
 const path = require("path");
 const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+    key: fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.key")),
+    cert: fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.crt"))
 };
 
 MongoClient.connect(db, (err, db) => {
@@ -85,12 +85,12 @@ MongoClient.connect(db, (err, db) => {
             domain: "localhost",
             path: "/",
             httpOnly: true,
-            secure: false,
-            maxAge: 24 * 60 * 60 * 1000
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000,
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
     }));
 
-    /*
     // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
@@ -99,7 +99,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
