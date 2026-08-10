@@ -9,14 +9,16 @@
 const { MongoClient } = require("mongodb");
 const { db } = require("../config/config");
 
+// Passwords are loaded from environment variables when set, otherwise they
+// default to pre-hashed bcrypt values. Set ADMIN_PASSWORD, USER1_PASSWORD,
+// or USER2_PASSWORD to supply a custom bcrypt hash at runtime.
 const USERS_TO_INSERT = [
     {
         "_id": 1,
         "userName": "admin",
         "firstName": "Node Goat",
         "lastName": "Admin",
-        "password": "Admin_123",
-        //"password" : "$2a$10$8Zo/1e8KM8QzqOKqbDlYlONBOzukWXrM.IiyzqHRYDXqwB3gzDsba", // Admin_123
+        "password": process.env.ADMIN_PASSWORD || "$2a$10$8Zo/1e8KM8QzqOKqbDlYlONBOzukWXrM.IiyzqHRYDXqwB3gzDsba",
         "isAdmin": true
     }, {
         "_id": 2,
@@ -24,16 +26,14 @@ const USERS_TO_INSERT = [
         "firstName": "John",
         "lastName": "Doe",
         "benefitStartDate": "2030-01-10",
-        "password": "User1_123"
-        // "password" : "$2a$10$RNFhiNmt2TTpVO9cqZElb.LQM9e1mzDoggEHufLjAnAKImc6FNE86",// User1_123
+        "password": process.env.USER1_PASSWORD || "$2a$10$RNFhiNmt2TTpVO9cqZElb.LQM9e1mzDoggEHufLjAnAKImc6FNE86"
     }, {
         "_id": 3,
         "userName": "user2",
         "firstName": "Will",
         "lastName": "Smith",
         "benefitStartDate": "2025-11-30",
-        "password": "User2_123"
-        //"password" : "$2a$10$Tlx2cNv15M0Aia7wyItjsepeA8Y6PyBYaNdQqvpxkIUlcONf1ZHyq", // User2_123
+        "password": process.env.USER2_PASSWORD || "$2a$10$Tlx2cNv15M0Aia7wyItjsepeA8Y6PyBYaNdQqvpxkIUlcONf1ZHyq"
     }];
 
 const tryDropCollection = (db, name) => {
