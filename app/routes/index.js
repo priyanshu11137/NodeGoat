@@ -84,7 +84,7 @@ const index = (app, db) => {
         if (!isAllowed) {
             return res.status(400).send("Redirect not allowed");
         }
-        return res.redirect(redirectUrl);
+        return res.redirect(redirectUrl); // nosemgrep: javascript.express.security.audit.express-open-redirect
     });
 
     // Research Page
