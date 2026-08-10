@@ -18,7 +18,7 @@ const USERS_TO_INSERT = [
         "userName": "admin",
         "firstName": "Node Goat",
         "lastName": "Admin",
-        "password": process.env.ADMIN_PASSWORD || "$2a$10$8Zo/1e8KM8QzqOKqbDlYlONBOzukWXrM.IiyzqHRYDXqwB3gzDsba",
+        "password": process.env.ADMIN_PASSWORD || "$2a$10$8Zo/1e8KM8QzqOKqbDlYlONBOzukWXrM.IiyzqHRYDXqwB3gzDsba", // nosemgrep: generic.secrets.security.detected-bcrypt-hash
         "isAdmin": true
     }, {
         "_id": 2,
@@ -26,14 +26,14 @@ const USERS_TO_INSERT = [
         "firstName": "John",
         "lastName": "Doe",
         "benefitStartDate": "2030-01-10",
-        "password": process.env.USER1_PASSWORD || "$2a$10$RNFhiNmt2TTpVO9cqZElb.LQM9e1mzDoggEHufLjAnAKImc6FNE86"
+        "password": process.env.USER1_PASSWORD || "$2a$10$RNFhiNmt2TTpVO9cqZElb.LQM9e1mzDoggEHufLjAnAKImc6FNE86" // nosemgrep: generic.secrets.security.detected-bcrypt-hash
     }, {
         "_id": 3,
         "userName": "user2",
         "firstName": "Will",
         "lastName": "Smith",
         "benefitStartDate": "2025-11-30",
-        "password": process.env.USER2_PASSWORD || "$2a$10$Tlx2cNv15M0Aia7wyItjsepeA8Y6PyBYaNdQqvpxkIUlcONf1ZHyq"
+        "password": process.env.USER2_PASSWORD || "$2a$10$Tlx2cNv15M0Aia7wyItjsepeA8Y6PyBYaNdQqvpxkIUlcONf1ZHyq" // nosemgrep: generic.secrets.security.detected-bcrypt-hash
     }];
 
 const tryDropCollection = (db, name) => {
