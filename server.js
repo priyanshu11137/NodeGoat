@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -15,17 +15,19 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
+// Load keys for establishing secure HTTPS connection when certificates are available
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
-*/
+const certKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const certCrtPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
+const httpsOptions = (fs.existsSync(certKeyPath) && fs.existsSync(certCrtPath))
+    ? {
+        key: fs.readFileSync(certKeyPath),
+        cert: fs.readFileSync(certCrtPath)
+    }
+    : null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -82,26 +84,21 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
+        resave: true,
         // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        // Use generic cookie name to avoid exposing framework details
+        name: "sessionId",
+        // Fix for A3 - XSS and secure cookie configuration
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            httpOnly: true,   // Prevent client-side JS from reading the cookie
+            secure: false,    // Set to true when HTTPS is enabled
+            path: "/",        // Restrict cookie to application root path
+            maxAge: 3600000   // Cookie expires after 1 hour (sets expires implicitly)
+            // domain is intentionally omitted: the browser will use the request host,
+            // which is the correct default behaviour for a portable deployment.
         }
-        */
-
     }));
 
-    /*
     // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
@@ -110,7 +107,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -141,17 +137,22 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
     // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Use HTTPS when TLS certificates are present; fall back to HTTP for local
+    // development only. In production, always provide certificates so that
+    // traffic is encrypted and protected against man-in-the-middle attacks
+    // (CWE-319).
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        // WARNING: Running over plain HTTP. This is acceptable for local
+        // development only. Do NOT use in production without TLS certificates
+        // placed at ./artifacts/cert/server.key and ./artifacts/cert/server.crt
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port} (WARNING: plain HTTP — not suitable for production)`);
+        });
+    }
 
 });
