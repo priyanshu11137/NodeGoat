@@ -22,6 +22,8 @@ function AllocationsHandler(db) {
 
         allocationsDAO.getByUserIdAndThreshold(userId, threshold, (err, allocations) => {
             if (err) return next(err);
+            // Set HSTS header to enforce HTTPS and prevent protocol downgrade attacks (CWE-346)
+            res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
             return res.render("allocations", {
                 userId,
                 allocations,
