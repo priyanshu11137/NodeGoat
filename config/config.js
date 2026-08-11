@@ -8,7 +8,12 @@ const rawEnv = process.env.NODE_ENV || "development";
 const finalEnv = ALLOWED_ENVS.includes(rawEnv.toLowerCase()) ? rawEnv.toLowerCase() : "development";
 
 const allConf = require(path.resolve(__dirname, "../config/env/all.js"));
-const envConf = require(path.resolve(__dirname, "../config/env/" + finalEnv + ".js")) || {};
+const ENV_MODULES = {
+    development: require(path.resolve(__dirname, "../config/env/development.js")),
+    test: require(path.resolve(__dirname, "../config/env/test.js")),
+    production: require(path.resolve(__dirname, "../config/env/production.js"))
+};
+const envConf = ENV_MODULES[finalEnv] || {};
 
 const config = { ...allConf, ...envConf };
 
