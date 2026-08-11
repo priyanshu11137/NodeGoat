@@ -73,11 +73,9 @@ const index = (app, db) => {
             "https://nodegoat.herokuapp.com/tutorial",
             "/tutorial"
         ];
-        const url = req.query.url;
-        if (url && ALLOWED_URLS.includes(url)) {
-            return res.redirect(url);
-        }
-        return res.redirect("/tutorial");
+        const requested = req.query.url;
+        const idx = requested ? ALLOWED_URLS.indexOf(requested) : -1;
+        return res.redirect(idx !== -1 ? ALLOWED_URLS[idx] : "/tutorial");
     });
 
     // Research Page
