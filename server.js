@@ -89,7 +89,8 @@ MongoClient.connect(db, (err, db) => {
             domain: "",       // scope to exact host, no subdomains
             path: "/",
             httpOnly: true,   // prevent client-side JS access
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
             maxAge: 24 * 60 * 60 * 1000  // 24-hour session lifetime
         }
     }));
