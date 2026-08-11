@@ -90,7 +90,8 @@ MongoClient.connect(db, (err, db) => {
             path: "/",
             httpOnly: true,   // prevent client-side JS access
             secure: true,
-            maxAge: 24 * 60 * 60 * 1000  // 24-hour session lifetime
+            maxAge: 24 * 60 * 60 * 1000,  // 24-hour session lifetime
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)  // explicit expiry satisfies cookie expires requirement
         }
     }));
 
