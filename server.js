@@ -149,10 +149,13 @@ MongoClient.connect(db, (err, db) => {
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });
+    } else if (process.env.NODE_ENV === "production") {
+        console.error("TLS certificates not found. HTTPS is required in production. Exiting.");
+        process.exit(1);
     } else {
-        // WARNING: HTTP only — configure TLS certificates for production deployments
+        // HTTP only — acceptable for dev/test; never run this path in production
         http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port} (HTTP only — configure TLS for production)`);
+            console.log(`Express http server listening on port ${port} (HTTP only — do not use in production)`);
         });
     }
 
