@@ -126,6 +126,15 @@ MongoClient.connect(db, (err, db) => {
     routes(app, db);
 
     // Template system setup
+    swig.setTag(
+        "csrf_token",
+        function parse(str, line, parser) { return true; },
+        function compile(compiler, args, content, parents, options, blockName) {
+            return '_output += "<input type=\\"hidden\\" name=\\"_csrf\\" value=\\"" + _context.csrftoken + "\\" />";';
+        },
+        false,
+        false
+    );
     swig.setDefaults({
         // Autoescape disabled
         autoescape: false
