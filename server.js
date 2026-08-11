@@ -155,9 +155,10 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        // WARNING: HTTP only — configure TLS certificates for production deployments
+        // WARNING (CWE-319): No TLS certificates found — starting insecure HTTP server.
+        // Do NOT use HTTP in production; provide server.key and server.crt in artifacts/cert/ to enable HTTPS.
         http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port} (HTTP only — configure TLS for production)`);
+            console.warn(`[SECURITY WARNING] Express HTTP server listening on port ${port} — traffic is unencrypted. Configure TLS certificates for production use.`);
         });
     }
 
