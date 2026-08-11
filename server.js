@@ -139,9 +139,12 @@ MongoClient.connect(db, (err, db) => {
     const fs = require("fs");
     const https = require("https");
     const path = require("path");
-    const keyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-    const certPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
-    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    const baseCertDir = path.resolve(__dirname, "./artifacts/cert");
+    const keyPath = path.normalize(path.resolve(__dirname, "./artifacts/cert/server.key"));
+    const certPath = path.normalize(path.resolve(__dirname, "./artifacts/cert/server.crt"));
+    const keyPathValid = keyPath.startsWith(baseCertDir + path.sep);
+    const certPathValid = certPath.startsWith(baseCertDir + path.sep);
+    if (keyPathValid && certPathValid && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
         const httpsOptions = {
             key: fs.readFileSync(keyPath),
             cert: fs.readFileSync(certPath)
