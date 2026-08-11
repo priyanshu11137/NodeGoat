@@ -8,7 +8,13 @@ const rawEnv = process.env.NODE_ENV || "development";
 const finalEnv = ALLOWED_ENVS.includes(rawEnv.toLowerCase()) ? rawEnv.toLowerCase() : "development";
 
 const allConf = require(path.resolve(__dirname, "../config/env/all.js"));
-const envConf = require(path.resolve(__dirname, "../config/env/" + finalEnv + ".js")) || {};
+// Use a static lookup table instead of dynamic path construction to prevent eval/path-injection.
+const envConfigs = {
+  development: require(path.resolve(__dirname, "../config/env/development.js")),
+  test: require(path.resolve(__dirname, "../config/env/test.js")),
+  production: require(path.resolve(__dirname, "../config/env/production.js")),
+};
+const envConf = envConfigs[finalEnv] || {};
 
 const config = { ...allConf, ...envConf };
 
