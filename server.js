@@ -90,7 +90,7 @@ MongoClient.connect(db, (err, db) => {
             domain: "",       // scope to exact host, no subdomains
             path: "/",
             httpOnly: true,   // prevent client-side JS access
-            secure: false,    // set to true when serving over HTTPS
+            secure: true,
             maxAge: 24 * 60 * 60 * 1000,  // 24-hour session lifetime
             expires: new Date(Date.now() + 24 * 60 * 60 * 1000)  // absolute expiry (satisfies cookie-session-no-expires rule)
         }
