@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -90,7 +89,7 @@ MongoClient.connect(db, (err, db) => {
             domain: "",       // scope to exact host, no subdomains
             path: "/",
             httpOnly: true,   // prevent client-side JS access
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             maxAge: 24 * 60 * 60 * 1000  // 24-hour session lifetime
         }
     }));
@@ -149,14 +148,9 @@ MongoClient.connect(db, (err, db) => {
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });
-    } else if (process.env.NODE_ENV === "production") {
-        console.error("TLS certificates not found. HTTPS is required in production. Exiting.");
-        process.exit(1);
     } else {
-        // HTTP only — acceptable for dev/test; never run this path in production
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port} (HTTP only — do not use in production)`);
-        });
+        console.error("TLS certificates not found. HTTPS is required. Exiting.");
+        process.exit(1);
     }
 
 });
