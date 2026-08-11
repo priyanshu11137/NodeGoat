@@ -139,18 +139,10 @@ MongoClient.connect(db, (err, db) => {
     // Use HTTPS when certificate files are available; fall back to HTTP for demo/dev environments
     const fs = require("fs");
     const https = require("https");
-    const path = require("path");
-    // Restrict certificate file access to this directory to prevent path traversal (CWE-22)
-    const certDir = path.resolve(__dirname, "artifacts", "cert");
-    const keyPath = path.resolve(certDir, "server.key");
-    const certPath = path.resolve(certDir, "server.crt");
-    if (!keyPath.startsWith(certDir + path.sep) || !certPath.startsWith(certDir + path.sep)) {
-        throw new Error("TLS certificate path traversal detected — refusing to load files outside the expected directory");
-    }
-    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    if (fs.existsSync(__dirname + "/artifacts/cert/server.key") && fs.existsSync(__dirname + "/artifacts/cert/server.crt")) {
         const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
+            key: fs.readFileSync(__dirname + "/artifacts/cert/server.key"),
+            cert: fs.readFileSync(__dirname + "/artifacts/cert/server.crt")
         };
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
