@@ -74,8 +74,9 @@ const index = (app, db) => {
             "/tutorial"
         ];
         const url = req.query.url;
-        if (url && ALLOWED_URLS.includes(url)) {
-            return res.redirect(url);
+        const idx = url ? ALLOWED_URLS.indexOf(url) : -1;
+        if (idx !== -1) {
+            return res.redirect(ALLOWED_URLS[idx]);
         }
         return res.redirect("/tutorial");
     });
