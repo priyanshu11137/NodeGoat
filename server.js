@@ -92,7 +92,7 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,   // prevent client-side JS access
             secure: true,
             maxAge: 24 * 60 * 60 * 1000,  // 24-hour session lifetime
-            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)  // absolute expiry (satisfies cookie-session-no-expires rule)
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
     }));
 
@@ -131,7 +131,7 @@ MongoClient.connect(db, (err, db) => {
         "csrf_token",
         function parse(str, line, parser) { return true; },
         function compile(compiler, args, content, parents, options, blockName) {
-            return '_output += "<input type=\\"hidden\\" name=\\"_csrf\\" value=\\"" + _context.csrftoken + "\\" />";';
+            return "_output += '<input type=\"hidden\" name=\"_csrf\" value=\"' + _context.csrftoken + '\" />';";
         },
         false,
         false
@@ -154,21 +154,23 @@ MongoClient.connect(db, (err, db) => {
     const certPath = path.normalize(path.resolve(__dirname, "./artifacts/cert/server.crt"));
     const keyPathValid = keyPath.startsWith(baseCertDir + path.sep);
     const certPathValid = certPath.startsWith(baseCertDir + path.sep);
-    if (keyPathValid && certPathValid && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    if (keyPathValid && certPathValid &&
+        fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.key")) &&
+        fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))) {
         const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
+            key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
+            cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
         };
         https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
+            console.log("Express https server listening on port " + port);
         });
     } else {
         if (process.env.NODE_ENV === "production") {
-            console.error("TLS certificates are required in production. Configure server.key and server.crt before starting.");
+            console.error("TLS certificates required in production.");
             process.exit(1);
         }
         http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port} (HTTP only — configure TLS for production)`);
+            console.log("Express http server listening on port " + port);
         });
     }
 
