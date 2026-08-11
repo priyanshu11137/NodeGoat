@@ -148,11 +148,9 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        // WARNING (CWE-319): No TLS certificates found — starting insecure HTTP server.
-        // Do NOT use HTTP in production; provide server.key and server.crt in artifacts/cert/ to enable HTTPS.
-        http.createServer(app).listen(port, () => {
-            console.warn(`[SECURITY WARNING] Express HTTP server listening on port ${port} — traffic is unencrypted. Configure TLS certificates for production use.`);
-        });
+        // CWE-319: TLS certificates not found — HTTP is not supported.
+        // Provide server.key and server.crt in artifacts/cert/ to start the server over HTTPS.
+        console.warn('[SECURITY] TLS certificates not found. The application requires HTTPS and will not start over insecure HTTP. Please provide server.key and server.crt in artifacts/cert/.');
     }
 
 });
