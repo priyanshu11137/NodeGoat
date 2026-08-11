@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -169,9 +168,7 @@ MongoClient.connect(db, (err, db) => {
             console.error("TLS certificates required in production.");
             process.exit(1);
         }
-        http.createServer(app).listen(port, () => {
-            console.log("Express http server listening on port " + port);
-        });
+        console.warn("TLS certificates not found; server not started. Add server.key and server.crt to start.");
     }
 
 });
