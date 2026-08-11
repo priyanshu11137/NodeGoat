@@ -68,16 +68,22 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        const ALLOWED_URLS = [
-            "https://owasp.org/www-project-top-ten/",
-            "https://nodegoat.herokuapp.com/tutorial",
-            "/tutorial"
+        // Allow-list restricted to internal relative paths only.
+        // External URLs must not be driven by user input to prevent open redirect (CWE-601).
+        const ALLOWED_PATHS = [
+            "/tutorial",
+            "/dashboard",
+            "/profile",
+            "/contributions",
+            "/benefits",
+            "/memos",
+            "/research"
         ];
-        const url = req.query.url;
-        if (url && ALLOWED_URLS.includes(url)) {
-            return res.redirect(url);
-        }
-        return res.redirect("/tutorial");
+        const requestedUrl = req.query.url;
+        // safeUrl is sourced from ALLOWED_PATHS (our constant), never from user input,
+        // so the redirect target cannot be attacker-controlled.
+        const safeUrl = ALLOWED_PATHS.find(p => p === requestedUrl) || "/tutorial";
+        return res.redirect(safeUrl);
     });
 
     // Research Page
