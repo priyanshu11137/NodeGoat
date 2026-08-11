@@ -139,8 +139,13 @@ MongoClient.connect(db, (err, db) => {
     const fs = require("fs");
     const https = require("https");
     const path = require("path");
-    const keyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-    const certPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
+    // Restrict certificate file access to this directory to prevent path traversal (CWE-22)
+    const certDir = path.resolve(__dirname, "artifacts", "cert");
+    const keyPath = path.resolve(certDir, "server.key");
+    const certPath = path.resolve(certDir, "server.crt");
+    if (!keyPath.startsWith(certDir + path.sep) || !certPath.startsWith(certDir + path.sep)) {
+        throw new Error("TLS certificate path traversal detected — refusing to load files outside the expected directory");
+    }
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
         const httpsOptions = {
             key: fs.readFileSync(keyPath),
