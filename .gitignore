@@ -29,3 +29,6 @@ test/e2e/videos/
 
 # ignore Snyk Code scanner files
 .dccache
+
+# TLS private key — never commit real keys
+artifacts/cert/server.key
