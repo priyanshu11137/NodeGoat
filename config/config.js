@@ -1,12 +1,15 @@
-const path = require("path");
 const util = require("util");
 
-const VALID_ENVS = ["development", "production", "test"];
-const finalEnv = process.env.NODE_ENV || "development";
-const normalizedEnv = VALID_ENVS.includes(finalEnv.toLowerCase()) ? finalEnv.toLowerCase() : "development";
+const allConf = require("./env/all.js");
 
-const allConf = require(path.join(__dirname, "env", "all.js"));
-const envConf = require(path.join(__dirname, "env", normalizedEnv + ".js")) || {};
+const ENV_CONFIGS = {
+    development: require("./env/development.js"),
+    production: require("./env/production.js"),
+    test: require("./env/test.js")
+};
+
+const finalEnv = (process.env.NODE_ENV || "development").toLowerCase();
+const envConf = ENV_CONFIGS[finalEnv] || ENV_CONFIGS.development;
 
 const config = { ...allConf, ...envConf };
 
