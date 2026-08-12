@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
@@ -117,22 +116,13 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when TLS_KEY and TLS_CERT environment variables are set
-    const tlsKeyPath = process.env.TLS_KEY ? path.resolve(process.env.TLS_KEY) : null;
-    const tlsCertPath = process.env.TLS_CERT ? path.resolve(process.env.TLS_CERT) : null;
-    if (tlsKeyPath && tlsCertPath) {
-        const httpsOptions = {
-            key: fs.readFileSync(tlsKeyPath),
-            cert: fs.readFileSync(tlsCertPath)
-        };
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        console.warn("WARNING: TLS_KEY/TLS_CERT not set, falling back to insecure HTTP");
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
-    }
+    const certDir = path.join(__dirname, "artifacts", "cert");
+    const httpsOptions = {
+        key: fs.readFileSync(path.join(certDir, "server.key")),
+        cert: fs.readFileSync(path.join(certDir, "server.crt"))
+    };
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express https server listening on port ${port}`);
+    });
 
 });
