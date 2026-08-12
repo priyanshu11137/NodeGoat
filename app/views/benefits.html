@@ -51,6 +51,7 @@
                         <td>{{user.firstName}}</td>
                         <td>{{user.lastName}}</td>
                         <td>
+                            <!-- nosemgrep: python.django.security.django-no-csrf-token -->
                             <form method="POST" action="/benefits">
                                     <input type="hidden" name="_csrf" value="{{csrftoken}}" />
                                 <div class="input-group">
