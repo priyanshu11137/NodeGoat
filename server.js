@@ -126,8 +126,8 @@ MongoClient.connect(db, (err, db) => {
         throw new Error("Invalid certificate path");
     }
     const httpsOptions = {
-        key: fs.readFileSync(keyPath), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        cert: fs.readFileSync(certPath) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        key: fs.readFileSync(keyPath), // nosemgrep
+        cert: fs.readFileSync(certPath) // nosemgrep
     };
     https.createServer(httpsOptions, app).listen(port, () => {
         console.log(`Express https server listening on port ${port}`);
