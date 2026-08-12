@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -12,6 +12,7 @@ const MongoClient = require("mongodb").MongoClient; // Driver for connecting to 
 const http = require("http");
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -75,21 +76,17 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             secure: true,
             maxAge: 3600000,
+            expires: new Date(Date.now() + 3600000),
             domain: process.env.APP_DOMAIN || undefined,
             path: "/"
         }
     }));
 
-    /*
-    // Fix for A8 - CSRF
-    // Enable Express csrf protection
     app.use(csrf());
-    // Make csrf token available in templates
     app.use((req, res, next) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -121,10 +118,12 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Use HTTPS when TLS_KEY and TLS_CERT environment variables are set
-    if (process.env.TLS_KEY && process.env.TLS_CERT) {
+    const tlsKeyPath = process.env.TLS_KEY ? path.resolve(process.env.TLS_KEY) : null;
+    const tlsCertPath = process.env.TLS_CERT ? path.resolve(process.env.TLS_CERT) : null;
+    if (tlsKeyPath && tlsCertPath) {
         const httpsOptions = {
-            key: fs.readFileSync(process.env.TLS_KEY),
-            cert: fs.readFileSync(process.env.TLS_CERT)
+            key: fs.readFileSync(tlsKeyPath),
+            cert: fs.readFileSync(tlsCertPath)
         };
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
