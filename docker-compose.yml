@@ -13,6 +13,8 @@ services:
   mongo:
     image: mongo:4.4
     user: mongodb
+    security_opt:
+      - no-new-privileges:true
     read_only: true
     tmpfs:
       - /tmp
