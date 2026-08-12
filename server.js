@@ -116,10 +116,16 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    const certDir = path.join(__dirname, "artifacts", "cert");
+    const certDir = path.resolve(__dirname, "artifacts", "cert");
+    const keyPath = path.resolve(certDir, "server.key");
+    const certPath = path.resolve(certDir, "server.crt");
+    // Ensure resolved paths remain within certDir (path traversal guard)
+    if (!keyPath.startsWith(certDir + path.sep) || !certPath.startsWith(certDir + path.sep)) {
+        throw new Error("Certificate path escapes the expected directory");
+    }
     const httpsOptions = {
-        key: fs.readFileSync(path.join(certDir, "server.key")),
-        cert: fs.readFileSync(path.join(certDir, "server.crt"))
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
     };
     https.createServer(httpsOptions, app).listen(port, () => {
         console.log(`Express https server listening on port ${port}`);
