@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
@@ -174,10 +173,7 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        const pwdBuf = Buffer.from(password);
-        const verBuf = Buffer.from(verify);
-        const pwdMatch = pwdBuf.length === verBuf.length && crypto.timingSafeEqual(pwdBuf, verBuf);
-        if (!pwdMatch) {
+        if (password !== verify) {
             errors.verifyError = "Password must match";
             return false;
         }

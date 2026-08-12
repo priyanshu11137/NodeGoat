@@ -82,17 +82,23 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true,
-        // Fix for A5 - Security MisConfig: use generic cookie name
-        name: "sessionId",
-        // Fix for A3/A5: explicit cookie settings restrict scope and exposure
+        resave: true
+        /*
+        // Fix for A5 - Security MisConfig
+        // Use generic cookie name
+        key: "sessionId",
+        */
+
+        /*
+        // Fix for A3 - XSS
+        // TODO: Add "maxAge"
         cookie: {
-            domain: "",       // scope to exact host, no subdomains
-            path: "/",
-            httpOnly: true,   // prevent client-side JS access
-            secure: false,    // set to true when serving over HTTPS
-            maxAge: 24 * 60 * 60 * 1000  // 24-hour session lifetime
+            httpOnly: true
+            // Remember to start an HTTPS server to get this working
+            // secure: true
         }
+        */
+
     }));
 
     /*
@@ -135,25 +141,17 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when certificate files are available; fall back to HTTP for demo/dev environments
-    const fs = require("fs");
-    const https = require("https");
-    const path = require("path");
-    const keyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-    const certPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
-    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-        const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
-        };
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        // WARNING: HTTP only — configure TLS certificates for production deployments
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port} (HTTP only — configure TLS for production)`);
-        });
-    }
+    // Insecure HTTP connection
+    http.createServer(app).listen(port, () => {
+        console.log(`Express http server listening on port ${port}`);
+    });
+
+    /*
+    // Fix for A6-Sensitive Data Exposure
+    // Use secure HTTPS protocol
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express http server listening on port ${port}`);
+    });
+    */
 
 });
