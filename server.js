@@ -11,6 +11,7 @@ const swig = require("swig");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const fs = require("fs");
 const https = require("https");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -128,8 +129,8 @@ MongoClient.connect(db, (err, db) => {
 
     // Fix for A6-Sensitive Data Exposure — use secure HTTPS protocol
     const sslOptions = {
-        key: fs.readFileSync(__dirname + "/artifacts/cert/server.key"),
-        cert: fs.readFileSync(__dirname + "/artifacts/cert/server.crt")
+        key: fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.key")),
+        cert: fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.crt"))
     };
     https.createServer(sslOptions, app).listen(port, () => {
         console.log(`Express https server listening on port ${port}`);
