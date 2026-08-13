@@ -6,13 +6,14 @@ const finalEnv = process.env.NODE_ENV || "development";
 // Static require — no dynamic path concatenation (CWE-95)
 const allConf = require("./env/all.js");
 
-// Allowlist of known environments — prevents arbitrary path injection via NODE_ENV
-const envConfigs = {
+// Allowlist lookup using Object.create(null) to prevent prototype injection
+const envConfigs = Object.assign(Object.create(null), {
     "development": require("./env/development.js"),
     "test": require("./env/test.js"),
     "production": require("./env/production.js")
-};
-const envConf = envConfigs[finalEnv.toLowerCase()] || {};
+});
+const envKey = finalEnv.toLowerCase();
+const envConf = Object.prototype.hasOwnProperty.call(envConfigs, envKey) ? envConfigs[envKey] : {};
 
 const config = { ...allConf, ...envConf };
 
