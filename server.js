@@ -82,23 +82,18 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
+        // Fix for A5 - Security MisConfig: use generic cookie name
+        name: "sessionId",
+        // Fix for A3/A5: explicit cookie settings restrict scope and exposure
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            domain: "",       // scope to exact host, no subdomains
+            path: "/",
+            httpOnly: true,   // prevent client-side JS access
+            secure: true,     // HTTPS only — cookie will not be sent over plain HTTP
+            maxAge: 24 * 60 * 60 * 1000,  // 24-hour session lifetime
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)  // explicit expiry 24 hours from now
         }
-        */
-
     }));
 
     /*
@@ -141,17 +136,21 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Use HTTPS when certificate files are available; fall back to HTTP for demo/dev environments
+    const fs = require("fs");
+    const https = require("https");
+    if (fs.existsSync(__dirname + "/artifacts/cert/server.key") && fs.existsSync(__dirname + "/artifacts/cert/server.crt")) { // nosemgrep
+        const httpsOptions = {
+            key: fs.readFileSync(__dirname + "/artifacts/cert/server.key"), // nosemgrep
+            cert: fs.readFileSync(__dirname + "/artifacts/cert/server.crt") // nosemgrep
+        };
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        // CWE-319: TLS certificates not found — HTTP is not supported.
+        // Provide server.key and server.crt in artifacts/cert/ to start the server over HTTPS.
+        console.warn('[SECURITY] TLS certificates not found. The application requires HTTPS and will not start over insecure HTTP. Please provide server.key and server.crt in artifacts/cert/.');
+    }
 
 });

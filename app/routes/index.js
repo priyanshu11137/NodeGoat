@@ -68,8 +68,22 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        // Allow-list restricted to internal relative paths only.
+        // External URLs must not be driven by user input to prevent open redirect (CWE-601).
+        const ALLOWED_PATHS = [
+            "/tutorial",
+            "/dashboard",
+            "/profile",
+            "/contributions",
+            "/benefits",
+            "/memos",
+            "/research"
+        ];
+        const requestedUrl = req.query.url;
+        // safeUrl is sourced from ALLOWED_PATHS (our constant), never from user input,
+        // so the redirect target cannot be attacker-controlled.
+        const safeUrl = ALLOWED_PATHS.find(p => p === requestedUrl) || "/tutorial";
+        return res.redirect(safeUrl);
     });
 
     // Research Page
