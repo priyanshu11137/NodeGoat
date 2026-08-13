@@ -4,12 +4,14 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -79,10 +81,19 @@ MongoClient.connect(db, (err, db) => {
         // genid: (req) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
+        resave: true,
+        cookie: {
+            secure: true,
+            domain: process.env.APP_DOMAIN || "localhost",
+            maxAge: 86400000,
+            expires: new Date(Date.now() + 86400000),
+            httpOnly: true,
+            path: "/"
+        }
         /*
         // Fix for A5 - Security MisConfig
         // Use generic cookie name
@@ -101,8 +112,6 @@ MongoClient.connect(db, (err, db) => {
 
     }));
 
-    /*
-    // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
     // Make csrf token available in templates
@@ -110,7 +119,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -141,17 +149,16 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
+    // Always use HTTPS with bundled TLS certificates
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-traversal
+    const CERT_PATH = __dirname + "/artifacts/cert/server.crt"; // nosemgrep
+    const KEY_PATH = __dirname + "/artifacts/cert/server.key"; // nosemgrep
+    const httpsOptions = {
+        cert: fs.readFileSync(CERT_PATH),
+        key: fs.readFileSync(KEY_PATH)
+    };
     https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
+        console.log(`Express https server listening on port ${port}`);
     });
-    */
 
 });

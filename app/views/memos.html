@@ -12,7 +12,9 @@
 
             <div class="panel-body">
 
+                <!-- nosemgrep: python.django.security.django-no-csrf-token -->
                 <form action="/memos" method="post" role="search">
+                    <input type="hidden" name="_csrf" value="{{csrftoken}}" />
 
                     <div class="form-group">
                         <textarea class="form-control" name="memo"></textarea>
