@@ -67,14 +67,19 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
+    // Allowlisted internal paths only — blocks open redirect (CWE-601)
+    const ALLOWED_REDIRECTS = {
+        "/dashboard": "/dashboard",
+        "/profile": "/profile",
+        "/contributions": "/contributions",
+        "/allocations": "/allocations",
+        "/memos": "/memos",
+        "/research": "/research",
+        "/benefits": "/benefits"
+    };
     app.get("/learn", isLoggedIn, (req, res) => {
-        const redirectUrl = req.query.url;
-        // Only allow relative paths (no protocol, no external host)
-        // Reject absolute URLs (https?://) and protocol-relative URLs (//)
-        if (!redirectUrl || /^(https?:)?\/\//.test(redirectUrl) || !/^\//.test(redirectUrl)) {
-            return res.redirect("/");
-        }
-        return res.redirect(redirectUrl);
+        const safePath = ALLOWED_REDIRECTS[req.query.url] || "/dashboard";
+        return res.redirect(safePath);
     });
 
     // Research Page
