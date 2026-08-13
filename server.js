@@ -122,10 +122,12 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol when TLS certificates are available
+    // Use secure HTTPS protocol — cert paths from env or defaults
+    var tlsKeyPath = process.env.TLS_KEY_PATH || "./artifacts/cert/server.key";
+    var tlsCertPath = process.env.TLS_CERT_PATH || "./artifacts/cert/server.crt";
     try {
-        var httpsKey = fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.key"));
-        var httpsCert = fs.readFileSync(path.join(__dirname, "artifacts", "cert", "server.crt"));
+        var httpsKey = fs.readFileSync(tlsKeyPath);
+        var httpsCert = fs.readFileSync(tlsCertPath);
         https.createServer({ key: httpsKey, cert: httpsCert }, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });

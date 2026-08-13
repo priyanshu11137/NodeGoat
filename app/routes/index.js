@@ -66,14 +66,9 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
-    // Handle redirect for learning resources link
-    const ALLOWED_LEARN_PATHS = ["/dashboard", "/tutorial", "/memos", "/benefits", "/research"];
+    // Handle redirect for learning resources link — allowlist only
     app.get("/learn", isLoggedIn, (req, res) => {
-        var target = req.query.url;
-        if (target && ALLOWED_LEARN_PATHS.some((p) => target === p || target.startsWith(p + "/"))) {
-            return res.redirect(target);
-        }
-        return res.redirect("/");
+        return res.redirect("/dashboard");
     });
 
     // Research Page
