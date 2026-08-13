@@ -85,7 +85,8 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         cookie: {
             secure: true,
-            domain: process.env.APP_DOMAIN || "localhost"
+            domain: process.env.APP_DOMAIN || "localhost",
+            maxAge: 86400000
         }
         /*
         // Fix for A5 - Security MisConfig
