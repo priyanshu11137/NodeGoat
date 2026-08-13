@@ -82,10 +82,11 @@ MongoClient.connect(db, (err, db) => {
         // Fix for A3 - XSS and A6 - Sensitive Data Exposure
         cookie: {
             httpOnly: true,
-            // secure: true requires HTTPS; set NODE_ENV=production with an HTTPS server
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             path: "/",
-            maxAge: 60 * 60 * 1000 // 1 hour
+            domain: "",
+            maxAge: 60 * 60 * 1000, // 1 hour
+            expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
         }
     }));
 
