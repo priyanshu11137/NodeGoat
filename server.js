@@ -9,9 +9,9 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -90,6 +90,7 @@ MongoClient.connect(db, (err, db) => {
             secure: true,
             domain: process.env.APP_DOMAIN || "localhost",
             maxAge: 86400000,
+            expires: new Date(Date.now() + 86400000),
             httpOnly: true,
             path: "/"
         }
@@ -151,19 +152,34 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when TLS cert and key are available, fall back to HTTP otherwise
-    if (process.env.TLS_CERT_PATH && process.env.TLS_KEY_PATH) {
-        const httpsOptions = {
-            cert: fs.readFileSync(process.env.TLS_CERT_PATH),
-            key: fs.readFileSync(process.env.TLS_KEY_PATH)
-        };
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
+    // Always use HTTPS. Use TLS_CERT_PATH/TLS_KEY_PATH if set, otherwise
+    // fall back to the bundled self-signed certs for local development.
+    const defaultCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
+    const defaultKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+
+    const certPath = process.env.TLS_CERT_PATH
+        ? path.resolve(__dirname, process.env.TLS_CERT_PATH)
+        : defaultCertPath;
+    const keyPath = process.env.TLS_KEY_PATH
+        ? path.resolve(__dirname, process.env.TLS_KEY_PATH)
+        : defaultKeyPath;
+
+    // Validate resolved paths do not traverse outside allowed directories
+    const allowedPrefixes = [__dirname, "/etc/ssl"];
+    function isAllowedPath(resolvedPath) {
+        return allowedPrefixes.some((prefix) => resolvedPath.startsWith(prefix));
     }
+    if (!isAllowedPath(certPath) || !isAllowedPath(keyPath)) {
+        console.error("Error: TLS cert/key paths resolve outside allowed directories");
+        process.exit(1);
+    }
+
+    const httpsOptions = {
+        cert: fs.readFileSync(certPath),
+        key: fs.readFileSync(keyPath)
+    };
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express https server listening on port ${port}`);
+    });
 
 });
