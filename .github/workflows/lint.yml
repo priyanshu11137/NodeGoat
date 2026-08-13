@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Checkout https://github.com/${{ github.repository }}@${{ github.ref }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # pinned from v2
         with:
           persist-credentials: false
 
       - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@1a4442cacd436585916779262731d1f8e4f3e3b8 # pinned from v1
         with:
           node-version: ${{ matrix.node-version }}
 
