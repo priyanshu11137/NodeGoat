@@ -4,8 +4,14 @@ const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+const allConf = require("./env/all.js");
+
+let envConf;
+switch (finalEnv.toLowerCase()) {
+    case "production": envConf = require("./env/production.js"); break;
+    case "test": envConf = require("./env/test.js"); break;
+    default: envConf = require("./env/development.js"); break;
+}
 
 const config = { ...allConf, ...envConf };
 
