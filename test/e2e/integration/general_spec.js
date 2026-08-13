@@ -38,7 +38,7 @@ describe("General behaviour", () => {
     cy.get("#learn-menu-link")
       .should("be.visible")
       .should("have.attr", "target", "_blank")
-      .should("have.attr", "href", "/learn?url=" + learnUrl);
+      .should("have.attr", "href", learnUrl);
 
     cy.get("#research-menu-link")
       .should("be.visible")
