@@ -10,7 +10,11 @@ function MemosHandler(db) {
 
     this.addMemos = (req, res, next) => {
 
-        memosDAO.insert(req.body.memo, (err, docs) => {
+        // Sanitize memo input before storing to prevent XSS via markdown rendering
+        const rawMemo = req.body.memo || "";
+        const sanitizedMemo = rawMemo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        memosDAO.insert(sanitizedMemo, (err, docs) => {
             if (err) return next(err);
             this.displayMemos(req, res, next);
         });

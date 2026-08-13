@@ -7,7 +7,7 @@ const session = require("express-session");
 // const csrf = require('csurf');
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
-// const helmet = require("helmet");
+const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
 const marked = require("marked");
@@ -66,6 +66,8 @@ MongoClient.connect(db, (err, db) => {
 
     // Adding/ remove HTTP Headers for security
     app.use(favicon(__dirname + "/app/assets/favicon.ico"));
+    // Fix for Missing HSTS Header (CWE-346) — enforce HTTPS via Strict-Transport-Security
+    app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true, force: true }));
 
     // Express middleware to populate "req.body" so we can access POST variables
     app.use(bodyParser.json());
@@ -133,12 +135,7 @@ MongoClient.connect(db, (err, db) => {
 
     // Template system setup
     swig.setDefaults({
-        // Autoescape disabled
-        autoescape: false
-        /*
-        // Fix for A3 - XSS, enable auto escaping
-        autoescape: true // default value
-        */
+        autoescape: true
     });
 
     // Insecure HTTP connection
