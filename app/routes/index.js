@@ -68,8 +68,22 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        const rawUrl = req.query.url || "";
+        // Restrict to relative paths only — extract path using URL API to strip scheme/host
+        // This prevents open redirect (CWE-601) by discarding any host/scheme component
+        let safePath = "/";
+        try {
+            // Use URL with a dummy base to parse and extract the pathname only
+            const parsed = new URL(rawUrl, "https://dummy.invalid");
+            const pathname = parsed.pathname;
+            // Only allow paths starting with / (no protocol-relative //)
+            if (pathname && pathname.startsWith("/") && !pathname.startsWith("//")) {
+                safePath = pathname;
+            }
+        } catch (_) {
+            safePath = "/";
+        }
+        return res.redirect(safePath);
     });
 
     // Research Page

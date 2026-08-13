@@ -1,11 +1,23 @@
 const _ = require("underscore");
-const path = require("path");
 const util = require("util");
 
-const finalEnv = process.env.NODE_ENV || "development";
+const ENV_CONFIGS = {
+  development: require("./env/development"),
+  production: require("./env/production"),
+  test: require("./env/test"),
+};
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+const nodeEnv = process.env.NODE_ENV || "development";
+const finalEnv = nodeEnv.toLowerCase();
+
+if (!Object.prototype.hasOwnProperty.call(ENV_CONFIGS, finalEnv)) {
+  throw new Error(
+    "Unknown NODE_ENV value '" + nodeEnv + "'. Must be one of: " + Object.keys(ENV_CONFIGS).join(", ")
+  );
+}
+
+const allConf = require("./env/all");
+const envConf = ENV_CONFIGS[finalEnv] || {};
 
 const config = { ...allConf, ...envConf };
 

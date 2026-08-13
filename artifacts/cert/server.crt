@@ -1,13 +1,4 @@
------BEGIN CERTIFICATE-----
-MIICATCCAWoCCQDCKC3cHx5NUTANBgkqhkiG9w0BAQUFADBFMQswCQYDVQQGEwJB
-VTETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0
-cyBQdHkgTHRkMB4XDTE1MDQyNTE3MjY0OVoXDTE2MDQyNDE3MjY0OVowRTELMAkG
-A1UEBhMCQVUxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0
-IFdpZGdpdHMgUHR5IEx0ZDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAn5/L
-j+Bbh2mgD6zJHJdXzTEDORBjE+J5zUlaGhFXYgy3Oj9JggGbVDvVtDo1qMPk8BpN
-x5KqEiTgPSkTK8yuzLRCn8DYM6bB6OJvph2j4OQ1MonJ1P4X1A74xnB700I1vDuP
-3IbTFZdoez/ELT4vUA3FqsZhFwi6kwegWV61ZI0CAwEAATANBgkqhkiG9w0BAQUF
-AAOBgQBz4POyn861fR/IgRbd5DFZMp0Wp2mwMaCIfrAxQJim4YNoK8Lx1dzuTHd/
-z4VJx4AzdfLtY2YmJrRxwjIk8JlxvmiXTDo049VZFGiWTavk0qiDEbswCysAWr4E
-plj/3gTmAYfYqI3YJ7bsDPIemwayNnIB+dgt9KJCD9O9DjxgLQ==
------END CERTIFICATE-----
+# PLACEHOLDER: Do not commit real certificates or private keys to source control.
+# Generate a self-signed certificate locally:
+#   openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -days 365 -nodes
+# Or load the certificate path from an environment variable / secrets manager at runtime.
