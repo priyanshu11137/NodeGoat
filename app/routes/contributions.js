@@ -27,24 +27,17 @@ function ContributionsHandler(db) {
 
     this.handleContributionsUpdate = (req, res, next) => {
 
-        /*jslint evil: true */
-        // Insecure use of eval() to parse inputs
-        const preTax = eval(req.body.preTax);
-        const afterTax = eval(req.body.afterTax);
-        const roth = eval(req.body.roth);
+        // Parse contribution inputs as finite floating point numbers; eval is not used
+        const preTax = parseFloat(req.body.preTax);
+        const afterTax = parseFloat(req.body.afterTax);
+        const roth = parseFloat(req.body.roth);
 
-        /*
-        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval
-        const preTax = parseInt(req.body.preTax);
-        const afterTax = parseInt(req.body.afterTax);
-        const roth = parseInt(req.body.roth);
-        */
         const {
             userId
         } = req.session;
 
-        //validate contributions
-        const validations = [isNaN(preTax), isNaN(afterTax), isNaN(roth), preTax < 0, afterTax < 0, roth < 0];
+        //validate contributions — reject NaN, Infinity, and negative values
+        const validations = [!isFinite(preTax), !isFinite(afterTax), !isFinite(roth), preTax < 0, afterTax < 0, roth < 0];
         const isInvalid = validations.some(validation => validation);
         if (isInvalid) {
             return res.render("contributions", {
