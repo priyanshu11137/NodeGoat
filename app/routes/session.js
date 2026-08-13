@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
@@ -173,7 +174,12 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        if (password !== verify) {
+        // Use constant-time comparison to prevent timing attacks (CWE-208)
+        const pwBuf = Buffer.from(password, "utf-8");
+        const verifyBuf = Buffer.from(verify, "utf-8");
+        const match = pwBuf.length === verifyBuf.length &&
+            crypto.timingSafeEqual(pwBuf, verifyBuf);
+        if (!match) {
             errors.verifyError = "Password must match";
             return false;
         }
