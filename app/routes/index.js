@@ -68,17 +68,11 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Allowlist of valid redirect paths for learning resources
-        const allowedPaths = [
-            "/tutorial",
-            "/tutorial/",
-            "/dashboard",
-            "/research"
-        ];
         var target = req.query.url;
-        if (typeof target === "string" && allowedPaths.indexOf(target) !== -1) {
-            return res.redirect(allowedPaths[allowedPaths.indexOf(target)]);
-        }
+        if (target === "/tutorial") return res.redirect("/tutorial");
+        if (target === "/tutorial/") return res.redirect("/tutorial/");
+        if (target === "/dashboard") return res.redirect("/dashboard");
+        if (target === "/research") return res.redirect("/research");
         return res.redirect("/");
     });
 
