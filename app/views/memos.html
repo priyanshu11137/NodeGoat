@@ -13,6 +13,7 @@
             <div class="panel-body">
 
                 <form action="/memos" method="post" role="search">
+                    {% csrf_token %}
 
                     <div class="form-group">
                         <textarea class="form-control" name="memo"></textarea>

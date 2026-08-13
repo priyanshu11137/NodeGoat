@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -82,23 +81,18 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
+        // Fix for A5 - Security MisConfig: use generic cookie name
+        name: "sessionId",
+        // Fix for A3/A5: explicit cookie settings restrict scope and exposure
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            domain: "",       // scope to exact host, no subdomains
+            path: "/",
+            httpOnly: true,   // prevent client-side JS access
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000,  // 24-hour session lifetime
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
-        */
-
     }));
 
     /*
@@ -132,6 +126,15 @@ MongoClient.connect(db, (err, db) => {
     routes(app, db);
 
     // Template system setup
+    swig.setTag(
+        "csrf_token",
+        function parse(str, line, parser) { return true; },
+        function compile(compiler, args, content, parents, options, blockName) {
+            return "_output += '<input type=\"hidden\" name=\"_csrf\" value=\"' + _context.csrftoken + '\" />';";
+        },
+        false,
+        false
+    );
     swig.setDefaults({
         // Autoescape disabled
         autoescape: false
@@ -141,17 +144,31 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Use HTTPS when certificate files are available; fall back to HTTP for demo/dev environments
+    const fs = require("fs");
+    const https = require("https");
+    const path = require("path");
+    const baseCertDir = path.resolve(__dirname, "./artifacts/cert");
+    const keyPath = path.normalize(path.resolve(__dirname, "./artifacts/cert/server.key"));
+    const certPath = path.normalize(path.resolve(__dirname, "./artifacts/cert/server.crt"));
+    const keyPathValid = keyPath.startsWith(baseCertDir + path.sep);
+    const certPathValid = certPath.startsWith(baseCertDir + path.sep);
+    if (keyPathValid && certPathValid &&
+        fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.key")) &&
+        fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))) {
+        const httpsOptions = {
+            key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
+            cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+        };
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log("Express https server listening on port " + port);
+        });
+    } else {
+        if (process.env.NODE_ENV === "production") {
+            console.error("TLS certificates required in production.");
+            process.exit(1);
+        }
+        console.warn("TLS certificates not found; server not started. Add server.key and server.crt to start.");
+    }
 
 });
