@@ -90,7 +90,8 @@ MongoClient.connect(db, (err, db) => {
             secure: true,
             domain: process.env.APP_DOMAIN || "localhost",
             maxAge: 86400000,
-            httpOnly: true
+            httpOnly: true,
+            path: "/"
         }
         /*
         // Fix for A5 - Security MisConfig
