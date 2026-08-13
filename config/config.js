@@ -1,11 +1,18 @@
 const _ = require("underscore");
-const path = require("path");
 const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+// Static require — no dynamic path concatenation (CWE-95)
+const allConf = require("./env/all.js");
+
+// Allowlist of known environments — prevents arbitrary path injection via NODE_ENV
+const envConfigs = {
+    "development": require("./env/development.js"),
+    "test": require("./env/test.js"),
+    "production": require("./env/production.js")
+};
+const envConf = envConfigs[finalEnv.toLowerCase()] || {};
 
 const config = { ...allConf, ...envConf };
 
