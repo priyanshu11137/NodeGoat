@@ -141,10 +141,9 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } catch (e) {
-        // Fall back to HTTP if certs are not available (development only)
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
+        // Cert files missing or unreadable — log error and exit rather than downgrading to HTTP
+        console.error("FATAL: Could not load TLS certificates for HTTPS server:", e.message);
+        process.exit(1);
     }
 
 });
