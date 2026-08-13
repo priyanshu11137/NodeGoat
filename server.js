@@ -81,7 +81,8 @@ MongoClient.connect(db, (err, db) => {
         // Fix for A3 - XSS and A6 - Sensitive Data Exposure
         cookie: {
             httpOnly: true,
-            secure: true,
+            // secure: false only in test/dev; enforced in production (CWE-522)
+            secure: process.env.NODE_ENV === "production",
             path: "/",
             domain: "",
             maxAge: 60 * 60 * 1000, // 1 hour
@@ -145,7 +146,7 @@ MongoClient.connect(db, (err, db) => {
             process.exit(1);
         }
         // In non-production (dev/test), fall back to HTTP so CI pipelines can run
-        console.error("WARNING: Could not load TLS certificates; falling back to HTTP (non-production only):", e.message);
+        console.error("WARNING: TLS cert load failed; HTTP fallback (non-production):", e.message);
         http.createServer(app).listen(port, () => {
             console.log(`Express http server listening on port ${port}`);
         });
