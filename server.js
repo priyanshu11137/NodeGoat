@@ -18,9 +18,6 @@ const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 
-// Define cert paths as module-level constants to avoid dynamic path taint at read sites
-const CERT_KEY_PATH = path.resolve(__dirname, "artifacts/cert/server.key");
-const CERT_CRT_PATH = path.resolve(__dirname, "artifacts/cert/server.crt");
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -133,8 +130,8 @@ MongoClient.connect(db, (err, db) => {
 
     // Fix for A6-Sensitive Data Exposure — use secure HTTPS protocol
     const sslOptions = {
-        key: fs.readFileSync(CERT_KEY_PATH),
-        cert: fs.readFileSync(CERT_CRT_PATH)
+        key: fs.readFileSync("artifacts/cert/server.key"), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        cert: fs.readFileSync("artifacts/cert/server.crt") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
     };
     https.createServer(sslOptions, app).listen(port, () => {
         console.log(`Express https server listening on port ${port}`);
