@@ -4,11 +4,14 @@ const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const allowedEnvs = ["development", "production", "test"];
-const sanitizedEnv = allowedEnvs.includes(finalEnv.toLowerCase()) ? finalEnv.toLowerCase() : "development";
+const envConfigs = {
+    "development": require("./env/development.js"),
+    "production": require("./env/production.js"),
+    "test": require("./env/test.js")
+};
 
 const allConf = require("./env/all.js");
-const envConf = require("./env/" + sanitizedEnv + ".js") || {};
+const envConf = envConfigs[finalEnv.toLowerCase()] || envConfigs["development"];
 
 const config = { ...allConf, ...envConf };
 

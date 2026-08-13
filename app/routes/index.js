@@ -67,10 +67,11 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
+    const ALLOWED_LEARN_PATHS = ["/dashboard", "/tutorial", "/memos", "/benefits", "/research"];
     app.get("/learn", isLoggedIn, (req, res) => {
-        var url = req.query.url;
-        if (url && url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
-            return res.redirect(url);
+        var target = req.query.url;
+        if (target && ALLOWED_LEARN_PATHS.some((p) => target === p || target.startsWith(p + "/"))) {
+            return res.redirect(target);
         }
         return res.redirect("/");
     });
