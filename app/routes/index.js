@@ -68,7 +68,8 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     // Allowlisted internal paths only — blocks open redirect (CWE-601)
-    const ALLOWED_REDIRECTS = {
+    // Use null-prototype object + hasOwnProperty check to prevent prototype injection
+    const ALLOWED_REDIRECTS = Object.assign(Object.create(null), {
         "/dashboard": "/dashboard",
         "/profile": "/profile",
         "/contributions": "/contributions",
@@ -76,9 +77,12 @@ const index = (app, db) => {
         "/memos": "/memos",
         "/research": "/research",
         "/benefits": "/benefits"
-    };
+    });
     app.get("/learn", isLoggedIn, (req, res) => {
-        const safePath = ALLOWED_REDIRECTS[req.query.url] || "/dashboard";
+        const key = req.query.url;
+        const safePath = (key && Object.prototype.hasOwnProperty.call(ALLOWED_REDIRECTS, key))
+            ? ALLOWED_REDIRECTS[key]
+            : "/dashboard";
         return res.redirect(safePath);
     });
 
