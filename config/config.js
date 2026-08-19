@@ -4,8 +4,8 @@ const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js")); // loads demo/placeholder config — not a real secret; values are example placeholders only
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {}; // loads demo/placeholder env config — not a real secret; values are example placeholders only
+const allConf = require(path.resolve(__dirname + "/../config/env/all.js")); // demo/placeholder values only
+const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
 
 const config = { ...allConf, ...envConf };
 
