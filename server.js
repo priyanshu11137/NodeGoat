@@ -92,9 +92,6 @@ MongoClient.connect(db, (err, db) => {
             path: "/",
             // domain set to empty string so the browser uses the current host (no cross-domain leakage)
             domain: "",
-            // express-session computes cookie expiry from maxAge per-session; setting a static
-            // `expires` date is explicitly discouraged in express-session docs (it would be shared
-            // across all sessions). maxAge: 3600000 provides the equivalent 1-hour lifetime.
             maxAge: 3600000
         }
 
