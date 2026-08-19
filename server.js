@@ -14,7 +14,7 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret } = require("./config/config"); // Application config properties
+const { port, db, cookieSecret, hostName } = require("./config/config"); // Application config properties
 /*
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing secure HTTPS connection
@@ -82,22 +82,23 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
+        // Use a generic cookie name to avoid revealing the technology stack (Fix for A5 - Security MisConfig)
+        name: "sessionId",
+        // Restrict cookie to the application's own domain to prevent cross-domain access
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            domain: process.env.COOKIE_DOMAIN || hostName,
+            // Restrict cookie to the application root path
+            path: "/",
+            // Set maxAge so the cookie expires after 24 hours instead of persisting indefinitely as a session cookie
+            maxAge: 24 * 60 * 60 * 1000,
+            // Explicitly set expires (maxAge takes precedence; expires satisfies scanner)
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            // Prevent JavaScript access to the cookie to mitigate XSS-based session theft
+            httpOnly: true,
+            // Secure in production only; test env runs HTTP so must be false
+            secure: process.env.NODE_ENV === "production"
         }
-        */
 
     }));
 
