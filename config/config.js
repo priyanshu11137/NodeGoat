@@ -11,8 +11,8 @@ const envConfigs = {
     test: require("./env/test.js"),
     production: require("./env/production.js"),
 };
-const safeKey = Object.prototype.hasOwnProperty.call(envConfigs, finalEnv.toLowerCase())
-    ? finalEnv.toLowerCase() : "development";
+const lowerEnv = finalEnv.toLowerCase();
+const safeKey = Object.prototype.hasOwnProperty.call(envConfigs, lowerEnv) ? lowerEnv : "development";
 const envConf = envConfigs[safeKey];
 
 const config = { ...allConf, ...envConf };
