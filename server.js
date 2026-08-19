@@ -9,22 +9,19 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
+// http module removed — HTTPS only
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
-const fs = require("fs");
 const https = require("https");
-const path = require("path");
-const certPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-const certFile = path.resolve(__dirname, "./artifacts/cert/server.crt");
-const httpsOptions = fs.existsSync(certPath) && fs.existsSync(certFile) ? {
-    key: fs.readFileSync(certPath),
-    cert: fs.readFileSync(certFile)
+const fs = require("fs");
+const CERT_KEY = __dirname + "/artifacts/cert/server.key";
+const CERT_FILE = __dirname + "/artifacts/cert/server.crt";
+const httpsOptions = fs.existsSync(CERT_KEY) && fs.existsSync(CERT_FILE) ? {
+    key: fs.readFileSync(CERT_KEY),
+    cert: fs.readFileSync(CERT_FILE)
 } : null;
 
 MongoClient.connect(db, (err, db) => {
@@ -133,17 +130,11 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    if (httpsOptions) {
-        // Fix for A6-Sensitive Data Exposure
-        // Use secure HTTPS protocol
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        console.warn("WARN: TLS certs not found, falling back to HTTP. Set up certs for production.");
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
+    if (!httpsOptions) {
+        throw new Error("TLS certs not found at artifacts/cert/. HTTPS is required.");
     }
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express https server listening on port ${port}`);
+    });
 
 });
