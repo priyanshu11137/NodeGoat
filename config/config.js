@@ -9,7 +9,16 @@ const envConfigs = {
   production: require("./env/production.js"),
   test: require("./env/test.js"),
 };
-const envConf = envConfigs[finalEnv.toLowerCase()] || envConfigs.development || {};
+const envKey = finalEnv.toLowerCase();
+let envConf;
+if (envKey === "production") {
+  envConf = envConfigs.production;
+} else if (envKey === "test") {
+  envConf = envConfigs.test;
+} else {
+  envConf = envConfigs.development;
+}
+envConf = envConf || {};
 
 const config = { ...allConf, ...envConf };
 
