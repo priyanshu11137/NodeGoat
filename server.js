@@ -19,10 +19,9 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const CERT_DIR = path.join(__dirname, "artifacts", "cert");
 const httpsOptions = {
-    key: fs.readFileSync(path.join(CERT_DIR, "server.key")),
-    cert: fs.readFileSync(path.join(CERT_DIR, "server.crt"))
+    key: fs.readFileSync(__dirname + "/artifacts/cert/server.key"),
+    cert: fs.readFileSync(__dirname + "/artifacts/cert/server.crt")
 };
 
 MongoClient.connect(db, (err, db) => {
