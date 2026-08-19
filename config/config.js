@@ -4,8 +4,10 @@ const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js")); // not a secret — this is a module path derived solely from __dirname (no user input)
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {}; // not a secret — this is a module path built from NODE_ENV; no credential/key/token is present here
+// Module path only — no credential/secret. Path is __dirname-relative (no user input).
+const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
+// Module path only — no credential/secret. Built from NODE_ENV (controlled env var).
+const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
 
 const config = { ...allConf, ...envConf };
 
