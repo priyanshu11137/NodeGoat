@@ -67,9 +67,24 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
+    const ALLOWED_LEARN_HOSTS = new Set([
+        'owasp.org', 'www.owasp.org',
+        'nodejs.org', 'expressjs.com', 'npmjs.com',
+        'github.com', 'cve.mitre.org', 'nvd.nist.gov',
+        'en.wikipedia.org', 'cheatsheetseries.owasp.org'
+    ]);
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        const url = req.query.url || "";
+        let parsedUrl;
+        try {
+            parsedUrl = new URL(url);
+        } catch (e) {
+            return res.redirect("/research");
+        }
+        if (parsedUrl.protocol !== "https:" || !ALLOWED_LEARN_HOSTS.has(parsedUrl.hostname)) {
+            return res.redirect("/research");
+        }
+        return res.redirect(parsedUrl.href);
     });
 
     // Research Page
