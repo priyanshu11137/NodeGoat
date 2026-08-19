@@ -83,15 +83,12 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
+        // Use a generic cookie name to avoid revealing the technology stack (Fix for A5 - Security MisConfig)
+        name: "sessionId",
         // Restrict cookie to the application's own domain to prevent cross-domain access
         cookie: {
             domain: process.env.COOKIE_DOMAIN || hostName
         }
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
 
         /*
         // Fix for A3 - XSS
