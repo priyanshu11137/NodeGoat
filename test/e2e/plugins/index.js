@@ -17,7 +17,7 @@ const { port, hostName } = require("../../../config/env/all");
 module.exports = (on, config) => {
   "use strict";
 
-  config.baseUrl = `http://${hostName}:${port}`;
+  config.baseUrl = `https://${hostName}:${port}`;
 
   return config;
 };
