@@ -67,24 +67,24 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
-    const ALLOWED_LEARN_HOSTS = new Set([
-        'owasp.org', 'www.owasp.org',
-        'nodejs.org', 'expressjs.com', 'npmjs.com',
-        'github.com', 'cve.mitre.org', 'nvd.nist.gov',
-        'en.wikipedia.org', 'cheatsheetseries.owasp.org'
+    const allowedLearnHosts = new Set([
+        "owasp.org", "www.owasp.org",
+        "nodejs.org", "expressjs.com", "npmjs.com",
+        "github.com", "cve.mitre.org", "nvd.nist.gov",
+        "en.wikipedia.org", "cheatsheetseries.owasp.org"
     ]);
     app.get("/learn", isLoggedIn, (req, res) => {
-        const url = req.query.url || "";
-        let parsedUrl;
+        const redirectUrl = req.query.url || "";
+        let parsed = null;
         try {
-            parsedUrl = new URL(url);
-        } catch (e) {
+            parsed = new URL(redirectUrl);
+        } catch (urlErr) {
             return res.redirect("/research");
         }
-        if (parsedUrl.protocol !== "https:" || !ALLOWED_LEARN_HOSTS.has(parsedUrl.hostname)) {
+        if (parsed.protocol !== "https:" || !allowedLearnHosts.has(parsed.hostname)) {
             return res.redirect("/research");
         }
-        return res.redirect(parsedUrl.href);
+        return res.redirect(parsed.href);
     });
 
     // Research Page

@@ -5,18 +5,16 @@ const finalEnv = process.env.NODE_ENV || "development";
 
 const allConf = require("./env/all.js");
 const envConfigs = {
-  development: require("./env/development.js"),
-  production: require("./env/production.js"),
-  test: require("./env/test.js"),
+    development: require("./env/development.js"),
+    production: require("./env/production.js"),
+    test: require("./env/test.js"),
 };
 const envKey = finalEnv.toLowerCase();
-let envConf;
+let envConf = envConfigs.development;
 if (envKey === "production") {
-  envConf = envConfigs.production;
+    envConf = envConfigs.production;
 } else if (envKey === "test") {
-  envConf = envConfigs.test;
-} else {
-  envConf = envConfigs.development;
+    envConf = envConfigs.test;
 }
 envConf = envConf || {};
 
