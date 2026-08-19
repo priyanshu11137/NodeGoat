@@ -89,7 +89,8 @@ MongoClient.connect(db, (err, db) => {
         key: "sessionId",
         */
         cookie: {
-            secure: true
+            secure: true,
+            domain: process.env.APP_DOMAIN || "localhost"
         }
     }));
 
