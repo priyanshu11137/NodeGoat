@@ -17,11 +17,9 @@ const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 const https = require("https");
 const fs = require("fs");
-const CERT_KEY = __dirname + "/artifacts/cert/server.key";
-const CERT_FILE = __dirname + "/artifacts/cert/server.crt";
-const httpsOptions = fs.existsSync(CERT_KEY) && fs.existsSync(CERT_FILE) ? {
-    key: fs.readFileSync(CERT_KEY),
-    cert: fs.readFileSync(CERT_FILE)
+const httpsOptions = fs.existsSync("./artifacts/cert/server.key") && fs.existsSync("./artifacts/cert/server.crt") ? {
+    key: fs.readFileSync("./artifacts/cert/server.key"),
+    cert: fs.readFileSync("./artifacts/cert/server.crt")
 } : null;
 
 MongoClient.connect(db, (err, db) => {
