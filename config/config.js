@@ -1,13 +1,17 @@
 const _ = require("underscore");
-const path = require("path");
 const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-// Module path only — no credential/secret. Path is __dirname-relative (no user input).
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-// Module path only — no credential/secret. Built from NODE_ENV (controlled env var).
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+const allConf = require("./env/all.js");
+
+// Static allowlist eliminates dynamic require / arbitrary module-load (CWE-95).
+const envConfigs = {
+    "development": require("./env/development.js"),
+    "test": require("./env/test.js"),
+    "production": require("./env/production.js")
+};
+const envConf = envConfigs[finalEnv.toLowerCase()] || {};
 
 const config = { ...allConf, ...envConf };
 
