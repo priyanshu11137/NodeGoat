@@ -15,17 +15,17 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing secure HTTPS connection
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
-*/
+const certPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const certFile = path.resolve(__dirname, "./artifacts/cert/server.crt");
+const httpsOptions = fs.existsSync(certPath) && fs.existsSync(certFile) ? {
+    key: fs.readFileSync(certPath),
+    cert: fs.readFileSync(certFile)
+} : null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -135,17 +135,17 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    if (httpsOptions) {
+        // Fix for A6-Sensitive Data Exposure
+        // Use secure HTTPS protocol
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.warn("WARN: TLS certs not found, falling back to HTTP. Set up certs for production.");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
