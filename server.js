@@ -74,15 +74,20 @@ MongoClient.connect(db, (err, db) => {
         // genid: (req) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
+        // Use a custom name to avoid default "connect.sid" fingerprinting
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
-        // Secure cookie settings: httpOnly prevents JS access, sameSite mitigates CSRF
+        // Secure cookie settings: httpOnly prevents JS access, sameSite mitigates CSRF,
+        // path restricts cookie scope, maxAge limits session lifetime to 1 hour
         cookie: {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
+            sameSite: "strict",
+            path: "/",
+            maxAge: 3600000
         }
 
     }));
