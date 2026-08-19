@@ -3,8 +3,8 @@ const util = require("util");
 
 const finalEnv = process.env.NODE_ENV || "development";
 
-const ALLOWED_ENVS = ["development", "production", "test"];
-const safeEnv = ALLOWED_ENVS.includes(finalEnv.toLowerCase()) ? finalEnv.toLowerCase() : "development";
+const allowedEnvs = ["development", "production", "test"];
+const safeEnv = allowedEnvs.includes(finalEnv.toLowerCase()) ? finalEnv.toLowerCase() : "development";
 
 const allConf = require("./env/all.js");
 const envConfMap = {
