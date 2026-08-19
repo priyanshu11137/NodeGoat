@@ -82,7 +82,7 @@ MongoClient.connect(db, (err, db) => {
         name: "sessionId",
         cookie: {
             httpOnly: true,
-            secure: true,
+            secure: !!httpsOptions,
             domain: undefined,
             expires: false,
             path: "/",
