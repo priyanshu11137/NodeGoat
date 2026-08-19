@@ -19,9 +19,19 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
+const CERT_BASE = path.resolve(__dirname, "artifacts", "cert");
+
+function safeCertRead(filename) {
+    const resolved = path.resolve(CERT_BASE, filename);
+    if (!resolved.startsWith(CERT_BASE + path.sep) && resolved !== CERT_BASE) {
+        throw new Error("Invalid cert path: " + filename);
+    }
+    return fs.readFileSync(resolved);
+}
+
 const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+    key: safeCertRead("server.key"),
+    cert: safeCertRead("server.crt")
 };
 
 MongoClient.connect(db, (err, db) => {
