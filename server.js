@@ -89,7 +89,9 @@ MongoClient.connect(db, (err, db) => {
         cookie: {
             domain: process.env.COOKIE_DOMAIN || hostName,
             // Restrict cookie to the application root path
-            path: "/"
+            path: "/",
+            // Set maxAge so the cookie expires after 24 hours instead of persisting indefinitely as a session cookie
+            maxAge: 24 * 60 * 60 * 1000
         }
 
         /*
