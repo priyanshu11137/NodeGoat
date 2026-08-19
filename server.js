@@ -93,7 +93,9 @@ MongoClient.connect(db, (err, db) => {
             // Set maxAge so the cookie expires after 24 hours instead of persisting indefinitely as a session cookie
             maxAge: 24 * 60 * 60 * 1000,
             // Prevent JavaScript access to the cookie to mitigate XSS-based session theft (Fix for A3 - XSS)
-            httpOnly: true
+            httpOnly: true,
+            // Ensure cookie is only transmitted over HTTPS in production (Fix for A6 - Sensitive Data Exposure)
+            secure: process.env.NODE_ENV === "production"
         }
 
     }));
