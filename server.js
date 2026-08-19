@@ -80,10 +80,12 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
-        key: "sessionId",
+        name: "sessionId",
         cookie: {
             httpOnly: true,
-            secure: false,
+            secure: true,
+            domain: undefined,
+            expires: false,
             path: "/",
             maxAge: 3600000
         }
