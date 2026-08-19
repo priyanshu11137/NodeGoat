@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -79,30 +79,20 @@ MongoClient.connect(db, (err, db) => {
         // genid: (req) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            domain: process.env.SESSION_DOMAIN || "",
+            path: "/",
+            maxAge: parseInt(process.env.SESSION_MAX_AGE) || 3600000,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production"
         }
-        */
-
     }));
 
-    /*
-    // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
     // Make csrf token available in templates
@@ -110,7 +100,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -141,10 +130,22 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
+    // Use HTTPS when cert/key are configured, fall back to HTTP for development
+    const fs = require("fs");
+    const https = require("https");
+    if (process.env.NODE_HTTPS_CERT && process.env.NODE_HTTPS_KEY) {
+        const httpsOpts = {
+            cert: fs.readFileSync(process.env.NODE_HTTPS_CERT),
+            key: fs.readFileSync(process.env.NODE_HTTPS_KEY)
+        };
+        https.createServer(httpsOpts, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
     /*
     // Fix for A6-Sensitive Data Exposure
