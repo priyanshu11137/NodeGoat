@@ -8,6 +8,8 @@
 // https://on.cypress.io/plugins-guide
 // ***********************************************************
 
+const fs = require("fs");
+const path = require("path");
 const { port, hostName } = require("../../../config/env/all");
 
 // This function is called when a project is opened or re-opened (e.g. due to
@@ -17,7 +19,11 @@ const { port, hostName } = require("../../../config/env/all");
 module.exports = (on, config) => {
   "use strict";
 
-  config.baseUrl = `http://${hostName}:${port}`;
+  const tlsKeyPath = path.resolve(__dirname, "../../../artifacts/cert/server.key");
+  const tlsCertPath = path.resolve(__dirname, "../../../artifacts/cert/server.crt");
+  const certReady = fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath);
+  const protocol = certReady ? "https" : "http";
+  config.baseUrl = `${protocol}://${hostName}:${port}`;
 
   return config;
 };

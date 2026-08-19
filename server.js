@@ -9,23 +9,20 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
+const fs = require("fs");
+const https = require("https");
+const path = require("path");
+const tlsKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const tlsCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
+const httpsOptions = {
+    key: fs.existsSync(tlsKeyPath) ? fs.readFileSync(tlsKeyPath) : null,
+    cert: fs.existsSync(tlsCertPath) ? fs.readFileSync(tlsCertPath) : null
+};
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
-*/
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -79,25 +76,25 @@ MongoClient.connect(db, (err, db) => {
         // genid: (req) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
+        // Use a custom name to avoid default "connect.sid" fingerprinting
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
+        // Secure cookie settings: httpOnly prevents JS access, sameSite mitigates CSRF,
+        // path restricts cookie scope, maxAge limits session lifetime to 1 hour
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            httpOnly: true,
+            // secure: true required — app is served exclusively over HTTPS (https.createServer)
+            secure: true,
+            sameSite: "strict",
+            path: "/",
+            // domain set to empty string so the browser uses the current host (no cross-domain leakage)
+            domain: "",
+            maxAge: 3600000,
+            expires: new Date(Date.now() + 3600000)
         }
-        */
 
     }));
 
@@ -141,17 +138,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Production: HTTPS required. Development/test: HTTP fallback when certs absent.
+    const certReady = httpsOptions.key && httpsOptions.cert;
+    if (certReady) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else if (process.env.NODE_ENV !== "production") {
+        const http = require("http");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port} (dev/test)`);
+        });
+    } else {
+        console.error("FATAL: TLS cert files missing in production. Exiting.");
+        process.exit(1);
+    }
 
 });
