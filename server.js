@@ -92,7 +92,8 @@ MongoClient.connect(db, (err, db) => {
             path: "/",
             // domain set to empty string so the browser uses the current host (no cross-domain leakage)
             domain: "",
-            maxAge: 3600000
+            maxAge: 3600000,
+            expires: new Date(Date.now() + 3600000)
         }
 
     }));
@@ -137,17 +138,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when cert files are present; fall back to HTTP otherwise.
-    const http = require("http");
+    // Production: HTTPS required. Development/test: HTTP fallback when certs absent.
     const certReady = httpsOptions.key && httpsOptions.cert;
     if (certReady) {
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });
-    } else {
+    } else if (process.env.NODE_ENV !== "production") {
+        const http = require("http");
         http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
+            console.log(`Express http server listening on port ${port} (dev/test)`);
         });
+    } else {
+        console.error("FATAL: TLS cert files missing in production. Exiting.");
+        process.exit(1);
     }
 
 });
