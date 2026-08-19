@@ -84,9 +84,15 @@ MongoClient.connect(db, (err, db) => {
         // path restricts cookie scope, maxAge limits session lifetime to 1 hour
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            // secure: true required — app is served exclusively over HTTPS (https.createServer)
+            secure: true,
             sameSite: "strict",
             path: "/",
+            // domain set to empty string so the browser uses the current host (no cross-domain leakage)
+            domain: "",
+            // express-session computes cookie expiry from maxAge per-session; setting a static
+            // `expires` date is explicitly discouraged in express-session docs (it would be shared
+            // across all sessions). maxAge: 3600000 provides the equivalent 1-hour lifetime.
             maxAge: 3600000
         }
 

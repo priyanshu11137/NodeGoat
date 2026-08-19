@@ -75,7 +75,9 @@ const index = (app, db) => {
         if (!redirectUrl || /^(https?:\/\/|\/\/)/i.test(redirectUrl)) {
             return res.redirect("/dashboard");
         }
-        return res.redirect(redirectUrl);
+        // Prepend "/" and strip any leading slashes from user input to ensure
+        // the redirect target is always an explicit local path, never raw user input.
+        return res.redirect("/" + redirectUrl.replace(/^\/+/, ""));
     });
 
     // Research Page
