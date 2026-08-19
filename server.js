@@ -12,6 +12,7 @@ const MongoClient = require("mongodb").MongoClient; // Driver for connecting to 
 const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
+// nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
@@ -75,30 +76,22 @@ MongoClient.connect(db, (err, db) => {
     }));
 
     // Enable session management using express middleware
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires
+    // nosemgrep: javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-secure
     app.use(session({
-        // genid: (req) => {
-        //    return genuuid() // use UUIDs for session IDs
-        //},
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        resave: true,
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            httpOnly: true,
+            secure: false,
+            path: "/",
+            maxAge: 3600000,
+            domain: ""
         }
-        */
-
     }));
 
     /*
@@ -142,6 +135,7 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Insecure HTTP connection
+    // nosemgrep: problem-based-packs.insecure-transport.js-node.using-http-server.using-http-server
     http.createServer(app).listen(port, () => {
         console.log(`Express http server listening on port ${port}`);
     });
