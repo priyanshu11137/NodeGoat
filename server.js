@@ -88,7 +88,8 @@ MongoClient.connect(db, (err, db) => {
             secure: true,
             domain: process.env.APP_DOMAIN || "localhost",
             expires: new Date(Date.now() + 2 * 60 * 60 * 1000),
-            httpOnly: true
+            httpOnly: true,
+            path: "/"
         }
     }));
 
