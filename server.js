@@ -87,7 +87,9 @@ MongoClient.connect(db, (err, db) => {
         name: "sessionId",
         // Restrict cookie to the application's own domain to prevent cross-domain access
         cookie: {
-            domain: process.env.COOKIE_DOMAIN || hostName
+            domain: process.env.COOKIE_DOMAIN || hostName,
+            // Restrict cookie to the application root path
+            path: "/"
         }
 
         /*
