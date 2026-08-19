@@ -75,6 +75,9 @@ const index = (app, db) => {
     ]);
     app.get("/learn", isLoggedIn, (req, res) => {
         const redirectUrl = req.query.url || "";
+        if (redirectUrl.startsWith("/")) {
+            return res.redirect(redirectUrl);
+        }
         let parsed = null;
         try {
             parsed = new URL(redirectUrl);
