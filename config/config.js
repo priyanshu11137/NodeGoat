@@ -5,7 +5,13 @@ const util = require("util");
 const finalEnv = process.env.NODE_ENV || "development";
 
 const allConf = require(path.resolve(__dirname + "/../config/env/all.js")); // demo/placeholder values only
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+// Load env configs statically to prevent dynamic path injection (CWE-95).
+const envConfigs = {
+    development: require("./env/development.js"),
+    test: require("./env/test.js"),
+    production: require("./env/production.js"),
+};
+const envConf = envConfigs[finalEnv.toLowerCase()] || envConfigs.development;
 
 const config = { ...allConf, ...envConf };
 
