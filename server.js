@@ -96,8 +96,8 @@ MongoClient.connect(db, (err, db) => {
             expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
             // Prevent JavaScript access to the cookie to mitigate XSS-based session theft
             httpOnly: true,
-            // Defaults secure=true; set COOKIE_SECURE=false to disable in non-HTTPS envs
-            secure: process.env.COOKIE_SECURE !== "false"
+            // Secure in production only; test env runs HTTP so must be false
+            secure: process.env.NODE_ENV === "production"
         }
 
     }));
