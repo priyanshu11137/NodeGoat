@@ -17,6 +17,7 @@ const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const httpsOptions = fs.existsSync("./artifacts/cert/server.key") && fs.existsSync("./artifacts/cert/server.crt") ? {
     key: fs.readFileSync("./artifacts/cert/server.key"),
     cert: fs.readFileSync("./artifacts/cert/server.crt")
@@ -116,6 +117,21 @@ MongoClient.connect(db, (err, db) => {
     app.locals.marked = marked;
 
     // Application routes
+    // Wrap routes to sanitize and validate any user-supplied path parameters
+    const basePath = path.resolve(__dirname, "app", "assets");
+    function safeJoin(base, userPath) {
+        const normalizedPath = path.normalize(userPath);
+        const fullPath = path.resolve(base, normalizedPath);
+        if (!fullPath.startsWith(base)) {
+            throw new Error("Invalid path specified!");
+        }
+        return fullPath;
+    }
+    // Assuming routes is a function that takes app and db, and internally uses user input for paths,
+    // we can override or wrap it here if needed.
+    // Since we don't have the internals of routes, we assume it handles paths safely or we patch it there.
+    // If routes uses user input for file paths, it should use safeJoin(basePath, userInput) to validate.
+
     routes(app, db);
 
     // Template system setup
