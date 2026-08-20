@@ -87,7 +87,8 @@ MongoClient.connect(db, (err, db) => {
         name: "sessionId",
         // Explicitly set domain to scope cookie to the request host only
         cookie: {
-            domain: ""
+            domain: "",
+            path: "/"
         }
         /*
         // Fix for A5 - Security MisConfig
