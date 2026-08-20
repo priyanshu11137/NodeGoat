@@ -112,8 +112,9 @@ MongoClient.connect(db, (err, db) => {
 
     }));
 
-    // Enable Express csrf protection
-    app.use(csrf());
+    // Enable Express csrf protection with cookie option
+    app.use(csrf({ cookie: true }));
+
     // Make csrf token available in templates
     app.use((req, res, next) => {
         res.locals.csrftoken = req.csrfToken();
