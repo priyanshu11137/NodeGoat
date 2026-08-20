@@ -88,7 +88,8 @@ MongoClient.connect(db, (err, db) => {
         // Explicitly set domain to scope cookie to the request host only
         cookie: {
             domain: "",
-            path: "/"
+            path: "/",
+            maxAge: 3600000
         }
         /*
         // Fix for A5 - Security MisConfig
