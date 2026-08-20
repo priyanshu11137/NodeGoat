@@ -151,8 +151,16 @@ MongoClient.connect(db, (err, db) => {
 
     // Always use HTTPS with bundled TLS certificates
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-traversal
-    const CERT_PATH = __dirname + "/artifacts/cert/server.crt"; // nosemgrep
-    const KEY_PATH = __dirname + "/artifacts/cert/server.key"; // nosemgrep
+    const CERT_PATH = path.normalize(path.join(__dirname, "artifacts/cert/server.crt"));
+    const KEY_PATH = path.normalize(path.join(__dirname, "artifacts/cert/server.key"));
+
+    // Verify that the resolved paths are within the expected directory
+    const baseCertPath = path.normalize(path.join(__dirname, "artifacts/cert/"));
+    if (!CERT_PATH.startsWith(baseCertPath) || !KEY_PATH.startsWith(baseCertPath)) {
+        console.log("Invalid certificate path specified!");
+        process.exit(1);
+    }
+
     const httpsOptions = {
         cert: fs.readFileSync(CERT_PATH),
         key: fs.readFileSync(KEY_PATH)
