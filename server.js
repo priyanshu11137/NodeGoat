@@ -89,7 +89,8 @@ MongoClient.connect(db, (err, db) => {
         cookie: {
             domain: "",
             path: "/",
-            maxAge: 3600000
+            maxAge: 3600000,
+            httpOnly: true
         }
         /*
         // Fix for A5 - Security MisConfig
