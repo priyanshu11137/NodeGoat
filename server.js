@@ -83,6 +83,8 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
+        // Use a non-default session cookie name to avoid fingerprinting
+        name: "sessionId",
         // Explicitly set domain to scope cookie to the request host only
         cookie: {
             domain: ""
@@ -90,7 +92,7 @@ MongoClient.connect(db, (err, db) => {
         /*
         // Fix for A5 - Security MisConfig
         // Use generic cookie name
-        key: "sessionId",
+        // key: "sessionId",
         */
 
         /*
