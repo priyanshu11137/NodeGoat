@@ -14,11 +14,6 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-// Fix for A6-Sensitive Data Exposure
-// Conditionally load TLS certs for secure HTTPS connection when available
-const fs = require("fs");
-const certPath = __dirname + "/artifacts/cert/server.crt";
-const keyPath = __dirname + "/artifacts/cert/server.key";
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -83,7 +78,10 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             secure: true,
             path: "/",
-            maxAge: 7200000
+            maxAge: 7200000,
+            expires: new Date(Date.now() + 7200000),
+            domain: "localhost",
+            sameSite: "strict"
         }
     }));
 
@@ -125,21 +123,10 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS when TLS certs are available, fall back to HTTP otherwise
-    if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-        const https = require("https");
-        const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
-        };
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        app.listen(port, () => {
-            console.log(`Express http server listening on port ${port} (no TLS certs found)`);
-        });
-    }
+    // Server listens on configured port
+    // TLS termination should be handled by a reverse proxy (nginx, load balancer)
+    app.listen(port, () => {
+        console.log(`Express server listening on port ${port}`);
+    });
 
 });
