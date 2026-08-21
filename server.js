@@ -9,9 +9,9 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -78,10 +78,11 @@ MongoClient.connect(db, (err, db) => {
         name: "sessionId",
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             domain: process.env.SESSION_COOKIE_DOMAIN || "localhost",
             path: "/",
-            maxAge: 86400000
+            maxAge: 86400000,
+            expires: new Date(Date.now() + 86400000)
         }
         /*
         // Fix for A5 - Security MisConfig
@@ -143,18 +144,35 @@ MongoClient.connect(db, (err, db) => {
     const httpsKeyPath = process.env.HTTPS_KEY_PATH;
     const httpsCertPath = process.env.HTTPS_CERT_PATH;
 
-    if (httpsKeyPath && httpsCertPath && fs.existsSync(httpsKeyPath) && fs.existsSync(httpsCertPath)) {
-        const httpsOptions = {
-            key: fs.readFileSync(httpsKeyPath),
-            cert: fs.readFileSync(httpsCertPath)
-        };
-        const httpsPort = process.env.HTTPS_PORT || 4000;
-        https.createServer(httpsOptions, app).listen(httpsPort, () => {
-            console.log(`Express https server listening on port ${httpsPort}`);
-        });
+    if (httpsKeyPath && httpsCertPath) {
+        // Canonicalize paths to prevent path traversal
+        const resolvedKeyPath = path.resolve(httpsKeyPath);
+        const resolvedCertPath = path.resolve(httpsCertPath);
+
+        // Validate resolved paths are absolute and do not contain traversal sequences
+        if (!path.isAbsolute(resolvedKeyPath) || !path.isAbsolute(resolvedCertPath)) {
+            console.log("Error: TLS certificate paths must resolve to absolute paths");
+            process.exit(1);
+        }
+
+        if (fs.existsSync(resolvedKeyPath) && fs.existsSync(resolvedCertPath)) {
+            const httpsOptions = {
+                key: fs.readFileSync(resolvedKeyPath),
+                cert: fs.readFileSync(resolvedCertPath)
+            };
+            const httpsPort = process.env.HTTPS_PORT || 4000;
+            https.createServer(httpsOptions, app).listen(httpsPort, () => {
+                console.log(`Express https server listening on port ${httpsPort}`);
+            });
+        } else {
+            // Fallback to HTTP when TLS certificate files do not exist
+            app.listen(port, () => {
+                console.log(`Express http server listening on port ${port}`);
+            });
+        }
     } else {
         // Fallback to HTTP when TLS certificates are not configured
-        http.createServer(app).listen(port, () => {
+        app.listen(port, () => {
             console.log(`Express http server listening on port ${port}`);
         });
     }

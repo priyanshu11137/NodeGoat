@@ -68,13 +68,21 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        var targetUrl = req.query.url;
-        // Only allow relative paths on the same origin
-        if (!targetUrl || typeof targetUrl !== "string" || !targetUrl.startsWith("/") ||
-            targetUrl.startsWith("//") || targetUrl.includes("://")) {
+        var allowedPrefixes = ["/tutorial", "/memos", "/research", "/benefits", "/contributions"];
+        var raw = req.query.url || "/";
+        var parsed;
+        try {
+            parsed = new URL(raw, "http://localhost");
+        } catch (e) {
             return res.redirect("/");
         }
-        return res.redirect(targetUrl);
+        var safePath = parsed.pathname;
+        if (!allowedPrefixes.some(function(prefix) {
+            return safePath === prefix || safePath.startsWith(prefix + "/");
+        })) {
+            return res.redirect("/");
+        }
+        return res.redirect(safePath);
     });
 
     // Research Page
