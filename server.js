@@ -75,6 +75,7 @@ MongoClient.connect(db, (err, db) => {
             domain: process.env.COOKIE_DOMAIN || "localhost",
             path: "/",
             httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
             maxAge: 3600000
         }
     }));
