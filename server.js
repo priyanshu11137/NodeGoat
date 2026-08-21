@@ -75,6 +75,7 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
+        name: "sessionId",
         cookie: {
             domain: process.env.SESSION_COOKIE_DOMAIN || "localhost"
         }
