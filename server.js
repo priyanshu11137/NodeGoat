@@ -160,8 +160,13 @@ MongoClient.connect(db, (err, db) => {
             console.log("Express https server listening on port " + port);
         });
     } else {
-        console.error("ERROR: TLS_CERT and TLS_KEY environment variables must be set. HTTP server disabled for security.");
-        process.exit(1);
+        if (process.env.NODE_ENV === "production") {
+            console.error("ERROR: TLS_CERT and TLS_KEY must be set in production.");
+            process.exit(1);
+        }
+        app.listen(port, () => {
+            console.log("Express server listening on port " + port);
+        });
     }
 
     /*
