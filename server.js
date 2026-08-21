@@ -9,7 +9,7 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -89,7 +89,8 @@ MongoClient.connect(db, (err, db) => {
             secure: true,
             domain: process.env.COOKIE_DOMAIN,
             path: "/",
-            maxAge: 7200000
+            maxAge: 7200000,
+            expires: new Date(Date.now() + 7200000)
         }
         /*
         // Fix for A5 - Security MisConfig
@@ -146,24 +147,33 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when TLS cert/key are available, fall back to HTTP otherwise
+    // Require HTTPS - TLS cert/key must be provided via environment variables
     var tlsCert = process.env.TLS_CERT_PATH;
     var tlsKey = process.env.TLS_KEY_PATH;
     if (tlsCert && tlsKey) {
         var https = require("https");
         var fs = require("fs");
+        // Canonicalize and validate TLS file paths to prevent path traversal
+        var resolvedCert = path.resolve(tlsCert);
+        var resolvedKey = path.resolve(tlsKey);
+        if (!path.isAbsolute(resolvedCert) || !path.isAbsolute(resolvedKey)) {
+            console.error("ERROR: TLS certificate and key paths must be absolute.");
+            process.exit(1);
+        }
+        if (resolvedCert.indexOf("..") !== -1 || resolvedKey.indexOf("..") !== -1) {
+            console.error("ERROR: TLS paths must not contain path traversal sequences.");
+            process.exit(1);
+        }
         var options = {
-            cert: fs.readFileSync(tlsCert),
-            key: fs.readFileSync(tlsKey)
+            cert: fs.readFileSync(resolvedCert),
+            key: fs.readFileSync(resolvedKey)
         };
         https.createServer(options, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        console.warn("TLS_CERT_PATH/TLS_KEY_PATH not set - falling back to HTTP (not recommended for production)");
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
+        console.error("ERROR: TLS_CERT_PATH and TLS_KEY_PATH environment variables must be set. HTTP server disabled for security.");
+        process.exit(1);
     }
 
     /*
