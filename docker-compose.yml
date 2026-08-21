@@ -10,14 +10,14 @@ services:
     ports:
       - "4000:4000"
     security_opt:
-      - no-new-privileges
+      - "no-new-privileges:true"
 
   mongo:
     image: mongo:4.4
     user: mongodb
     read_only: true
     security_opt:
-      - no-new-privileges
+      - "no-new-privileges:true"
     tmpfs:
       - /tmp
       - /data/configdb
