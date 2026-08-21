@@ -13,5 +13,15 @@ services:
   mongo:
     image: mongo:4.4
     user: mongodb
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
     expose:
       - 27017
+
+volumes:
+  mongo_data:
+  mongo_config:
