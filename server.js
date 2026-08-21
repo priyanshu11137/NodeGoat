@@ -85,6 +85,7 @@ MongoClient.connect(db, (err, db) => {
         saveUninitialized: true,
         resave: true,
         cookie: {
+            httpOnly: true,
             domain: process.env.COOKIE_DOMAIN,
             path: "/",
             maxAge: 7200000
