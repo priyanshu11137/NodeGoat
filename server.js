@@ -17,9 +17,8 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 // Fix for A6-Sensitive Data Exposure
 // Conditionally load TLS certs for secure HTTPS connection when available
 const fs = require("fs");
-const path = require("path");
-const certPath = path.join(__dirname, "artifacts", "cert", "server.crt");
-const keyPath = path.join(__dirname, "artifacts", "cert", "server.key");
+const certPath = __dirname + "/artifacts/cert/server.crt";
+const keyPath = __dirname + "/artifacts/cert/server.key";
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -84,8 +83,7 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             secure: true,
             path: "/",
-            maxAge: 7200000,
-            domain: process.env.COOKIE_DOMAIN || undefined
+            maxAge: 7200000
         }
     }));
 

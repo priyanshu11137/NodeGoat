@@ -67,16 +67,16 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link — allowlist only
-    const allowedRedirects = {
-        contributions: "/contributions",
-        allocations: "/allocations",
-        memos: "/memos",
-        research: "/research",
-        profile: "/profile",
-        dashboard: "/dashboard"
-    };
+    const allowedRedirects = new Map([
+        ["contributions", "/contributions"],
+        ["allocations", "/allocations"],
+        ["memos", "/memos"],
+        ["research", "/research"],
+        ["profile", "/profile"],
+        ["dashboard", "/dashboard"]
+    ]);
     app.get("/learn", isLoggedIn, (req, res) => {
-        const dest = allowedRedirects[req.query.url];
+        const dest = allowedRedirects.get(req.query.url);
         return res.redirect(dest || "/dashboard");
     });
 
