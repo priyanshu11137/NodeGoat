@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -85,11 +85,11 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             path: "/",
-            maxAge: 2 * 60 * 60 * 1000
+            maxAge: 2 * 60 * 60 * 1000,
+            domain: process.env.COOKIE_DOMAIN || undefined
         }
     }));
 
-    /*
     // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
@@ -98,7 +98,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
