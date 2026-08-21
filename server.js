@@ -83,7 +83,8 @@ MongoClient.connect(db, (err, db) => {
         // Fix for A3 - XSS
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production"
+            secure: process.env.NODE_ENV === "production",
+            path: "/"
         }
     }));
 
