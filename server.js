@@ -147,32 +147,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Require HTTPS - TLS cert/key must be provided via environment variables
-    var tlsCert = process.env.TLS_CERT_PATH;
-    var tlsKey = process.env.TLS_KEY_PATH;
+    // Require HTTPS - TLS cert/key content provided directly via environment variables
+    var tlsCert = process.env.TLS_CERT;
+    var tlsKey = process.env.TLS_KEY;
     if (tlsCert && tlsKey) {
         var https = require("https");
-        var fs = require("fs");
-        // Canonicalize and validate TLS file paths to prevent path traversal
-        var resolvedCert = path.resolve(tlsCert);
-        var resolvedKey = path.resolve(tlsKey);
-        if (!path.isAbsolute(resolvedCert) || !path.isAbsolute(resolvedKey)) {
-            console.error("ERROR: TLS certificate and key paths must be absolute.");
-            process.exit(1);
-        }
-        if (resolvedCert.indexOf("..") !== -1 || resolvedKey.indexOf("..") !== -1) {
-            console.error("ERROR: TLS paths must not contain path traversal sequences.");
-            process.exit(1);
-        }
         var options = {
-            cert: fs.readFileSync(resolvedCert),
-            key: fs.readFileSync(resolvedKey)
+            cert: tlsCert,
+            key: tlsKey
         };
         https.createServer(options, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
+            console.log("Express https server listening on port " + port);
         });
     } else {
-        console.error("ERROR: TLS_CERT_PATH and TLS_KEY_PATH environment variables must be set. HTTP server disabled for security.");
+        console.error("ERROR: TLS_CERT and TLS_KEY environment variables must be set. HTTP server disabled for security.");
         process.exit(1);
     }
 
