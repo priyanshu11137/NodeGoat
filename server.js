@@ -116,13 +116,12 @@ MongoClient.connect(db, (err, db) => {
     });
 
     const https = require("https");
-    const certFile = `${__dirname}/artifacts/cert/server.crt`;
-    const keyFile = `${__dirname}/artifacts/cert/server.key`;
 
-    if (fs.existsSync(certFile) && fs.existsSync(keyFile)) {
+    if (fs.existsSync(__dirname + "/artifacts/cert/server.crt") &&
+        fs.existsSync(__dirname + "/artifacts/cert/server.key")) {
         const httpsOptions = {
-            key: fs.readFileSync(keyFile),
-            cert: fs.readFileSync(certFile)
+            key: fs.readFileSync(__dirname + "/artifacts/cert/server.key"),
+            cert: fs.readFileSync(__dirname + "/artifacts/cert/server.crt")
         };
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
