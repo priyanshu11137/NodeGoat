@@ -144,10 +144,25 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
+    // Use HTTPS when TLS cert/key are available, fall back to HTTP otherwise
+    var tlsCert = process.env.TLS_CERT_PATH;
+    var tlsKey = process.env.TLS_KEY_PATH;
+    if (tlsCert && tlsKey) {
+        var https = require("https");
+        var fs = require("fs");
+        var options = {
+            cert: fs.readFileSync(tlsCert),
+            key: fs.readFileSync(tlsKey)
+        };
+        https.createServer(options, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.warn("TLS_CERT_PATH/TLS_KEY_PATH not set - falling back to HTTP (not recommended for production)");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
     /*
     // Fix for A6-Sensitive Data Exposure
