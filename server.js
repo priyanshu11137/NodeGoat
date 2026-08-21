@@ -15,7 +15,6 @@ const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 const fs = require("fs");
-const path = require("path");
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -117,13 +116,13 @@ MongoClient.connect(db, (err, db) => {
     });
 
     const https = require("https");
-    const certPath = path.join(__dirname, "artifacts", "cert", "server.crt");
-    const keyPath = path.join(__dirname, "artifacts", "cert", "server.key");
+    const certFile = `${__dirname}/artifacts/cert/server.crt`;
+    const keyFile = `${__dirname}/artifacts/cert/server.key`;
 
-    if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    if (fs.existsSync(certFile) && fs.existsSync(keyFile)) {
         const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
+            key: fs.readFileSync(keyFile),
+            cert: fs.readFileSync(certFile)
         };
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
