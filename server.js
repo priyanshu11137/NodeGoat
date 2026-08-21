@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -75,8 +74,10 @@ MongoClient.connect(db, (err, db) => {
             domain: process.env.COOKIE_DOMAIN || "localhost",
             path: "/",
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 3600000
+            secure: true,
+            expires: new Date(Date.now() + 3600000),
+            maxAge: 3600000,
+            sameSite: "strict"
         }
     }));
 
@@ -115,12 +116,11 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when TLS cert/key files are available; fall back to HTTP otherwise
-    const certPath = process.env.TLS_CERT_PATH || path.resolve(__dirname, "./artifacts/cert/server.crt");
-    const keyPath = process.env.TLS_KEY_PATH || path.resolve(__dirname, "./artifacts/cert/server.key");
+    const https = require("https");
+    const certPath = path.join(__dirname, "artifacts", "cert", "server.crt");
+    const keyPath = path.join(__dirname, "artifacts", "cert", "server.key");
 
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-        const https = require("https");
         const httpsOptions = {
             key: fs.readFileSync(keyPath),
             cert: fs.readFileSync(certPath)
@@ -129,8 +129,9 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
+        console.log("WARNING: TLS cert/key not found, starting without HTTPS");
+        app.listen(port, () => {
+            console.log(`Express server listening on port ${port}`);
         });
     }
 
