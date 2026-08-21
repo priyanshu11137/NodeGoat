@@ -9,9 +9,22 @@ services:
     command: sh -c "until nc -z -w 2 mongo 27017 && echo 'mongo is ready for connections' && node artifacts/db-reset.js && npm start; do sleep 2; done"
     ports:
       - "4000:4000"
+    security_opt:
+      - "no-new-privileges:true"
 
   mongo:
     image: mongo:4.4
     user: mongodb
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs:
+      - /tmp
+      - /data/configdb
+    volumes:
+      - mongo_data:/data/db
     expose:
       - 27017
+
+volumes:
+  mongo_data:

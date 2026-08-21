@@ -68,8 +68,16 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        var target = "/";
+        try {
+            var parsed = new URL(req.query.url || "/", "http://localhost");
+            if (parsed.hostname === "localhost") {
+                target = parsed.pathname;
+            }
+        } catch (e) {
+            // invalid URL, use default
+        }
+        return res.redirect(target);
     });
 
     // Research Page
