@@ -104,7 +104,7 @@
 
 
 
-                            <form method="post" role="form" method="post" id="loginform">
+                            <form method="post" role="form" method="post" id="loginform">{% raw %}{% csrf_token %}{% endraw %}
                                 <input type="hidden" name="_csrf" value="{{csrftoken}}">
                                 <div class="form-group">
                                     <label for="userName">User Name</label>
