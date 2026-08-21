@@ -12,7 +12,8 @@
 
             <div class="panel-body">
 
-                <form action="/memos" method="post" role="search">
+                <form action="/memos" method="post" role="search">{% raw %}{% csrf_token %}{% endraw %}
+                    <input type="hidden" name="_csrf" value="{{csrftoken}}">
 
                     <div class="form-group">
                         <textarea class="form-control" name="memo"></textarea>

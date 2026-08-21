@@ -104,7 +104,9 @@
 
 
 
-                            <form method="post" role="form" method="post" id="loginform">
+                            <form method="post" role="form" id="loginform">
+                                {% raw %}{% csrf_token %}{% endraw %}
+                                <input type="hidden" name="_csrf" value="{{csrftoken}}">
                                 <div class="form-group">
                                     <label for="userName">User Name</label>
                                     <input type="text" class="form-control" id="userName" name="userName" value="{{userName}}" placeholder="Enter User Name">
@@ -114,7 +116,6 @@
                                     <label for="password">Password</label>
                                     <input type="password" class="form-control" id="password" name="password" value="{{password}}" placeholder="Enter Password">
                                 </div>
-                                <input type="hidden" name="_csrf" value="{{csrftoken}}" />
 
                                 <div class="row">
                                     <div class="col-lg-4"><a href="/signup">New user? Sign Up</a>
