@@ -89,7 +89,9 @@ MongoClient.connect(db, (err, db) => {
             secure: true,
             sameSite: "strict",
             path: "/",
-            maxAge: 1800000
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            maxAge: 1800000,
+            expires: false
         }
         /*
         // Fix for A5 - Security MisConfig
