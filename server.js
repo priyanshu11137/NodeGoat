@@ -77,6 +77,7 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         name: "sessionId",
         cookie: {
+            httpOnly: true,
             domain: process.env.SESSION_COOKIE_DOMAIN || "localhost",
             path: "/",
             maxAge: 86400000
