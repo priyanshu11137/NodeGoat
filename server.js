@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -19,8 +18,8 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 // Conditionally load TLS certs for secure HTTPS connection when available
 const fs = require("fs");
 const path = require("path");
-const certPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
-const keyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const certPath = path.join(__dirname, "artifacts", "cert", "server.crt");
+const keyPath = path.join(__dirname, "artifacts", "cert", "server.key");
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -83,9 +82,9 @@ MongoClient.connect(db, (err, db) => {
         // Fix for A3 - XSS
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             path: "/",
-            maxAge: 2 * 60 * 60 * 1000,
+            maxAge: 7200000,
             domain: process.env.COOKIE_DOMAIN || undefined
         }
     }));
@@ -140,7 +139,7 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        http.createServer(app).listen(port, () => {
+        app.listen(port, () => {
             console.log(`Express http server listening on port ${port} (no TLS certs found)`);
         });
     }

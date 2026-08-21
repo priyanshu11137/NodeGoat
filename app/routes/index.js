@@ -66,14 +66,18 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
-    // Handle redirect for learning resources link
+    // Handle redirect for learning resources link — allowlist only
+    const allowedRedirects = {
+        contributions: "/contributions",
+        allocations: "/allocations",
+        memos: "/memos",
+        research: "/research",
+        profile: "/profile",
+        dashboard: "/dashboard"
+    };
     app.get("/learn", isLoggedIn, (req, res) => {
-        var url = req.query.url;
-        // Only allow relative paths (same-origin) to prevent open redirect
-        if (url && url.startsWith("/") && !url.startsWith("//")) {
-            return res.redirect(url);
-        }
-        return res.redirect("/dashboard");
+        const dest = allowedRedirects[req.query.url];
+        return res.redirect(dest || "/dashboard");
     });
 
     // Research Page
