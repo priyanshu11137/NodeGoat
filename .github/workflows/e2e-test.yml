@@ -13,17 +13,17 @@ jobs:
 
     steps:
       - name: Checkout https://github.com/${{ github.repository }}@${{ github.ref }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v2
         with:
           persist-credentials: false
 
       - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@270253e01c2a0e3180b4b03cb6c54e3fa2f17527 # v1
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Use cache
-        uses: actions/cache@v2
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94d9d67 # v2
         with:
           path: |
             ~/.npm
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload cypress artifacts
         if: failure() && (steps.test-suite.outcome == 'failure')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@09a5d6a283da3e76767e4101c1a2e8c1e1c18ef8 # v2
         with:
           name: cypress-artifacts-node${{ matrix.node-version }}
           path: test/e2e/screenshots
