@@ -78,7 +78,8 @@ MongoClient.connect(db, (err, db) => {
         name: "sessionId",
         cookie: {
             domain: process.env.SESSION_COOKIE_DOMAIN || "localhost",
-            path: "/"
+            path: "/",
+            maxAge: 86400000
         }
         /*
         // Fix for A5 - Security MisConfig
