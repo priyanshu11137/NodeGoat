@@ -10,14 +10,12 @@ const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const https = require("https");
-const fs = require("fs");
-const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-// TLS cert/key loaded at server start from env vars TLS_CERT_FILE and TLS_KEY_FILE
+// TLS cert/key PEM content loaded at server start from env vars TLS_CERT and TLS_KEY
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -141,34 +139,14 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Validate TLS file path: must be absolute, no traversal sequences
-    function validateTlsPath(filePath) {
-        if (typeof filePath !== "string" || filePath.trim() === "") {
-            throw new Error("TLS file path must be a non-empty string");
-        }
-        var resolved = path.resolve(filePath);
-        // Reject path traversal: normalized path must not differ from input
-        // in a way that indicates traversal, and must not contain '..'
-        if (resolved.includes("..")) {
-            throw new Error("Invalid TLS file path: path traversal detected");
-        }
-        // Ensure the resolved path is absolute (path.resolve guarantees this)
-        if (!path.isAbsolute(resolved)) {
-            throw new Error("TLS file path must resolve to an absolute path");
-        }
-        return resolved;
-    }
-
-    // HTTPS is required; TLS_CERT_FILE and TLS_KEY_FILE must be set
-    if (!process.env.TLS_CERT_FILE || !process.env.TLS_KEY_FILE) {
-        console.error("TLS_CERT_FILE and TLS_KEY_FILE environment variables are required");
+    // HTTPS is required; TLS_KEY and TLS_CERT env vars must contain PEM content directly
+    if (!process.env.TLS_KEY || !process.env.TLS_CERT) {
+        console.error("TLS_KEY and TLS_CERT environment variables are required for HTTPS");
         process.exit(1);
     }
-    var keyPath = validateTlsPath(process.env.TLS_KEY_FILE);
-    var certPath = validateTlsPath(process.env.TLS_CERT_FILE);
     var httpsOptions = {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath)
+        key: process.env.TLS_KEY,
+        cert: process.env.TLS_CERT
     };
     https.createServer(httpsOptions, app).listen(port, () => {
         console.log(`Express https server listening on port ${port}`);
