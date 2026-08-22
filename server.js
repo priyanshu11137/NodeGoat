@@ -87,7 +87,8 @@ MongoClient.connect(db, (err, db) => {
         saveUninitialized: true,
         resave: true,
         cookie: {
-            domain: process.env.COOKIE_DOMAIN || undefined
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            path: "/"
         }
         /*
         // Fix for A5 - Security MisConfig
