@@ -80,6 +80,7 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         cookie: {
             httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
             domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
             path: "/",
             maxAge: 24 * 60 * 60 * 1000
