@@ -69,21 +69,24 @@ const index = (app, db) => {
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
         // Allowlist of safe redirect destinations to prevent open redirect
-        const allowedPaths = {
-            "/tutorial": "/tutorial",
-            "/tutorial/a1": "/tutorial/a1",
-            "/tutorial/a2": "/tutorial/a2",
-            "/tutorial/a3": "/tutorial/a3",
-            "/tutorial/a4": "/tutorial/a4",
-            "/tutorial/a5": "/tutorial/a5",
-            "/tutorial/a6": "/tutorial/a6",
-            "/tutorial/a7": "/tutorial/a7",
-            "/tutorial/a8": "/tutorial/a8",
-            "/tutorial/a9": "/tutorial/a9",
-            "/tutorial/a10": "/tutorial/a10"
-        };
-        const safePath = allowedPaths[req.query.url];
-        return res.redirect(safePath || "/");
+        const allowedPaths = [
+            "/tutorial",
+            "/tutorial/a1",
+            "/tutorial/a2",
+            "/tutorial/a3",
+            "/tutorial/a4",
+            "/tutorial/a5",
+            "/tutorial/a6",
+            "/tutorial/a7",
+            "/tutorial/a8",
+            "/tutorial/a9",
+            "/tutorial/a10"
+        ];
+        const idx = allowedPaths.indexOf(req.query.url);
+        if (idx !== -1) {
+            return res.redirect(allowedPaths[idx]);
+        }
+        return res.redirect("/");
     });
 
     // Research Page
