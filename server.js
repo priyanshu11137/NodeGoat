@@ -9,7 +9,6 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
@@ -80,10 +79,11 @@ MongoClient.connect(db, (err, db) => {
         resave: true,
         cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
             path: "/",
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000,
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
         /*
         // Fix for A5 - Security MisConfig
@@ -141,20 +141,37 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Use HTTPS when TLS cert/key file paths are provided via environment variables
-    if (process.env.TLS_CERT_FILE && process.env.TLS_KEY_FILE) {
-        const httpsOptions = {
-            key: fs.readFileSync(path.resolve(process.env.TLS_KEY_FILE)),
-            cert: fs.readFileSync(path.resolve(process.env.TLS_CERT_FILE))
-        };
-        https.createServer(httpsOptions, app).listen(port, () => {
-            console.log(`Express https server listening on port ${port}`);
-        });
-    } else {
-        console.warn("TLS_CERT_FILE and TLS_KEY_FILE not set; falling back to HTTP (not for production)");
-        http.createServer(app).listen(port, () => {
-            console.log(`Express http server listening on port ${port}`);
-        });
+    // Validate TLS file path: must be absolute, no traversal sequences
+    function validateTlsPath(filePath) {
+        if (typeof filePath !== "string" || filePath.trim() === "") {
+            throw new Error("TLS file path must be a non-empty string");
+        }
+        var resolved = path.resolve(filePath);
+        // Reject path traversal: normalized path must not differ from input
+        // in a way that indicates traversal, and must not contain '..'
+        if (resolved.includes("..")) {
+            throw new Error("Invalid TLS file path: path traversal detected");
+        }
+        // Ensure the resolved path is absolute (path.resolve guarantees this)
+        if (!path.isAbsolute(resolved)) {
+            throw new Error("TLS file path must resolve to an absolute path");
+        }
+        return resolved;
     }
+
+    // HTTPS is required; TLS_CERT_FILE and TLS_KEY_FILE must be set
+    if (!process.env.TLS_CERT_FILE || !process.env.TLS_KEY_FILE) {
+        console.error("TLS_CERT_FILE and TLS_KEY_FILE environment variables are required");
+        process.exit(1);
+    }
+    var keyPath = validateTlsPath(process.env.TLS_KEY_FILE);
+    var certPath = validateTlsPath(process.env.TLS_CERT_FILE);
+    var httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express https server listening on port ${port}`);
+    });
 
 });

@@ -67,11 +67,29 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
+    // Allowlist of permitted redirect paths to prevent open redirect
+    const allowedRedirectPaths = [
+        "/tutorial",
+        "/research",
+        "/dashboard",
+        "/contributions",
+        "/memos",
+        "/benefits",
+        "/allocations",
+        "/profile"
+    ];
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Only allow safe relative URLs to prevent open redirect
-        const redirectUrl = req.query.url;
-        if (typeof redirectUrl === "string" && redirectUrl.startsWith("/") && !redirectUrl.startsWith("//")) {
-            return res.redirect(redirectUrl);
+        var requestedUrl = req.query.url;
+        if (typeof requestedUrl === "string") {
+            // Match against allowlist: exact match or path prefix followed by /
+            var matchedPath = allowedRedirectPaths.find((allowed) => {
+                return requestedUrl === allowed ||
+                    requestedUrl.startsWith(allowed + "/");
+            });
+            if (matchedPath) {
+                // Redirect to the safe allowlisted path (not raw input)
+                return res.redirect(matchedPath);
+            }
         }
         return res.redirect("/");
     });
