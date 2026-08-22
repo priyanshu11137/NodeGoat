@@ -9,9 +9,9 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
 const https = require("https");
 const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -90,8 +90,9 @@ MongoClient.connect(db, (err, db) => {
             domain: process.env.COOKIE_DOMAIN || undefined,
             path: "/",
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 24 * 60 * 60 * 1000
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000,
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
         /*
         // Fix for A5 - Security MisConfig
@@ -151,17 +152,18 @@ MongoClient.connect(db, (err, db) => {
 
     // Use HTTPS when TLS certificate and key are configured
     if (process.env.TLS_CERT_PATH && process.env.TLS_KEY_PATH) {
+        const keyPath = path.resolve(__dirname, process.env.TLS_KEY_PATH);
+        const certPath = path.resolve(__dirname, process.env.TLS_CERT_PATH);
         const httpsOptions = {
-            key: fs.readFileSync(process.env.TLS_KEY_PATH),
-            cert: fs.readFileSync(process.env.TLS_CERT_PATH)
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
         };
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express HTTPS server listening on port ${port}`);
         });
     } else {
-        console.warn("TLS not configured: set TLS_CERT_PATH and TLS_KEY_PATH for HTTPS");
-        http.createServer(app).listen(port, () => {
-            console.log(`Express HTTP server listening on port ${port}`);
+        app.listen(port, () => {
+            console.log(`Express server listening on port ${port}`);
         });
     }
 
