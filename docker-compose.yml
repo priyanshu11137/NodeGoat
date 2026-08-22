@@ -17,5 +17,7 @@ services:
     tmpfs:
       - /data/db
       - /tmp
+    security_opt:
+      - no-new-privileges:true
     expose:
       - 27017
