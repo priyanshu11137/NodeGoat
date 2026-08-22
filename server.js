@@ -9,6 +9,7 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
+const http = require("http");
 const https = require("https");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
@@ -139,17 +140,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // HTTPS is required; TLS_KEY and TLS_CERT env vars must contain PEM content directly
-    if (!process.env.TLS_KEY || !process.env.TLS_CERT) {
-        console.error("TLS_KEY and TLS_CERT environment variables are required for HTTPS");
-        process.exit(1);
+    // Use HTTPS when TLS_KEY and TLS_CERT env vars provide PEM content; fall back to HTTP otherwise
+    if (process.env.TLS_KEY && process.env.TLS_CERT) {
+        var httpsOptions = {
+            key: process.env.TLS_KEY,
+            cert: process.env.TLS_CERT
+        };
+        https.createServer(httpsOptions, app).listen(port, function() {
+            console.log("Express https server listening on port " + port);
+        });
+    } else {
+        console.warn("WARNING: TLS_KEY/TLS_CERT not set — running HTTP (not suitable for production)");
+        http.createServer(app).listen(port, function() {
+            console.log("Express http server listening on port " + port);
+        });
     }
-    var httpsOptions = {
-        key: process.env.TLS_KEY,
-        cert: process.env.TLS_CERT
-    };
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express https server listening on port ${port}`);
-    });
 
 });
