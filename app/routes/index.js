@@ -70,6 +70,16 @@ const index = (app, db) => {
     app.get("/learn", isLoggedIn, (req, res) => {
         // Allowlist of safe redirect destinations to prevent open redirect
         const allowedPaths = [
+            "/",
+            "/login",
+            "/signup",
+            "/logout",
+            "/dashboard",
+            "/profile",
+            "/contributions",
+            "/benefits",
+            "/memos",
+            "/research",
             "/tutorial",
             "/tutorial/a1",
             "/tutorial/a2",
