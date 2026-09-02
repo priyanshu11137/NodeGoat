@@ -115,7 +115,15 @@ MongoClient.connect(db, (err, db) => {
             // Fix for A3 - XSS / CWE-522
             // Prevent client-side JavaScript from reading the session
             // cookie, mitigating cookie theft via XSS.
-            httpOnly: true
+            httpOnly: true,
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Only mark the cookie Secure when the server is actually
+            // serving over HTTPS (TLS_KEY_PATH/TLS_CERT_PATH configured
+            // and loaded into httpsOptions above). Hardcoding `true`
+            // would stop browsers from sending the cookie back over the
+            // plain-HTTP fallback used in dev/test/CI, breaking
+            // login/session for every environment without real certs.
+            secure: Boolean(httpsOptions)
         }
     }));
 
