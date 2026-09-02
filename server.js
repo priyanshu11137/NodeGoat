@@ -10,26 +10,38 @@ const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection.
+// Fix for A6-Sensitive Data Exposure / CWE-319
+// Load keys for establishing a secure HTTPS connection.
 // Key material is never committed: supply it at runtime through the
 // TLS_KEY_PATH / TLS_CERT_PATH environment variables, pointing at a locally
 // generated key/cert pair, e.g.
 //   openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
 //       -keyout "$TLS_KEY_PATH" -out "$TLS_CERT_PATH"
-const fs = require("fs");
-const https = require("https");
-const httpsOptions = {
-    key: fs.readFileSync(process.env.TLS_KEY_PATH),
-    cert: fs.readFileSync(process.env.TLS_CERT_PATH)
-};
-*/
+// Both variables set => the app serves HTTPS. Neither set => it falls back to
+// plain HTTP, which keeps local development, the e2e suite and deployments that
+// terminate TLS at a proxy (docker-compose, Heroku) working unchanged.
+const tlsKeyPath = process.env.TLS_KEY_PATH;
+const tlsCertPath = process.env.TLS_CERT_PATH;
+if (Boolean(tlsKeyPath) !== Boolean(tlsCertPath)) {
+    // Half-configured TLS is a misconfiguration: fail closed rather than
+    // silently downgrading to cleartext.
+    console.log("Error: TLS: set both TLS_KEY_PATH and TLS_CERT_PATH, or neither");
+    process.exit(1);
+}
+const httpsOptions = tlsKeyPath ? {
+    key: fs.readFileSync(path.resolve(tlsKeyPath)),
+    cert: fs.readFileSync(path.resolve(tlsCertPath)),
+    // Do not negotiate legacy protocol versions.
+    minVersion: "TLSv1.2"
+} : null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -152,17 +164,19 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Fix for A6-Sensitive Data Exposure / CWE-319
+    // Use the secure HTTPS protocol whenever TLS material was supplied at
+    // runtime; only fall back to cleartext HTTP for local development, where no
+    // key/cert pair is available.
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.log("Warning: no TLS material configured - serving cleartext HTTP (development only)");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
