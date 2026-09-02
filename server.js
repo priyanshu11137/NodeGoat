@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -121,16 +121,22 @@ MongoClient.connect(db, (err, db) => {
 
     }));
 
-    /*
     // Fix for A8 - CSRF
-    // Enable Express csrf protection
-    app.use(csrf());
-    // Make csrf token available in templates
+    // Enable Express csrf protection. The token secret is stored in the session
+    // ("cookie: false") which is why this must be registered after the session
+    // middleware and after the body parsers, so the "_csrf" field posted by the
+    // forms can be read. Every state changing request (POST/PUT/PATCH/DELETE)
+    // must now carry a token matching the one issued for the session.
+    app.use(csrf({
+        cookie: false
+    }));
+    // Make csrf token available in templates: Express merges "res.locals" into
+    // the render options, so every view can render {{csrftoken}} in a hidden
+    // form field without each route handler having to pass it explicitly.
     app.use((req, res, next) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
