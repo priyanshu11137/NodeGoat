@@ -7,7 +7,6 @@ const MemosHandler = require("./memos");
 const ResearchHandler = require("./research");
 const tutorialRouter = require("./tutorial");
 const ErrorHandler = require("./error").errorHandler;
-const URL = require("url").URL;
 
 const index = (app, db) => {
 
