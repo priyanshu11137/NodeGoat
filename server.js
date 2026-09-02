@@ -32,9 +32,10 @@ const {
 // Load keys for establishing a secure HTTPS connection.
 // Key material is never committed: supply it at runtime through the
 // TLS_KEY_PATH / TLS_CERT_PATH environment variables, pointing at a locally
-// generated key/cert pair, e.g.
+// generated key/cert pair inside the TLS material directory (see below), e.g.
 //   openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
-//       -keyout "$TLS_KEY_PATH" -out "$TLS_CERT_PATH"
+//       -keyout artifacts/cert/server.key -out artifacts/cert/server.crt
+//   export TLS_KEY_PATH=server.key TLS_CERT_PATH=server.crt
 // Both variables set => the app serves HTTPS. Neither set => it falls back to
 // plain HTTP, which keeps local development, the e2e suite and deployments that
 // terminate TLS at a proxy (docker-compose, Heroku) working unchanged.
@@ -46,9 +47,43 @@ if (Boolean(tlsKeyPath) !== Boolean(tlsCertPath)) {
     console.log("Error: TLS: set both TLS_KEY_PATH and TLS_CERT_PATH, or neither");
     process.exit(1);
 }
+// Fix for A5-Security MisConfig / CWE-22 (path traversal)
+// The two paths above are supplied by the environment, so they are only ever
+// honoured inside one allowlisted directory of TLS material ("artifacts/cert"
+// by default; set TLS_MATERIAL_DIR for deployments that keep their key pair
+// somewhere else). Each configured path is resolved against that base and both
+// the base and the target are canonicalised with "realpathSync" before the
+// read, so a "..", an absolute path or a symlink leading out of the directory
+// can never turn the server start-up into a read of an unrelated file such as
+// "/etc/shadow" or another tenant's private key. Anything that escapes the
+// base - or is not a readable regular file - fails closed with a clear error
+// instead of being read.
+const tlsMaterialDir = process.env.TLS_MATERIAL_DIR || path.join(__dirname, "artifacts", "cert");
+
+const readTlsMaterial = (envName, configuredPath) => {
+    let baseDir;
+    let materialPath;
+    try {
+        baseDir = fs.realpathSync(path.resolve(tlsMaterialDir));
+        materialPath = fs.realpathSync(path.resolve(baseDir, configuredPath));
+    } catch (err) {
+        console.log(`Error: TLS: cannot resolve ${envName} inside ${tlsMaterialDir}: ${err.code}`);
+        process.exit(1);
+    }
+    if (!materialPath.startsWith(baseDir + path.sep)) {
+        console.log(`Error: TLS: ${envName} must point at a file inside ${baseDir}`);
+        process.exit(1);
+    }
+    if (!fs.statSync(materialPath).isFile()) {
+        console.log(`Error: TLS: ${envName} must point at a regular file inside ${baseDir}`);
+        process.exit(1);
+    }
+    return fs.readFileSync(materialPath);
+};
+
 const httpsOptions = tlsKeyPath ? {
-    key: fs.readFileSync(path.resolve(tlsKeyPath)),
-    cert: fs.readFileSync(path.resolve(tlsCertPath)),
+    key: readTlsMaterial("TLS_KEY_PATH", tlsKeyPath),
+    cert: readTlsMaterial("TLS_CERT_PATH", tlsCertPath),
     // Do not negotiate legacy protocol versions.
     minVersion: "TLSv1.2"
 } : null;
