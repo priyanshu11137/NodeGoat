@@ -24,8 +24,25 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const tlsKeyPath = process.env.TLS_KEY_PATH && path.resolve(process.env.TLS_KEY_PATH);
-const tlsCertPath = process.env.TLS_CERT_PATH && path.resolve(process.env.TLS_CERT_PATH);
+// Fix for CWE-22 Path Traversal: restrict TLS_KEY_PATH / TLS_CERT_PATH to
+// resolve within an allowed base directory instead of accepting arbitrary
+// absolute paths anywhere on the filesystem.
+const tlsCertBaseDir = path.resolve(process.env.TLS_CERT_DIR || path.join(__dirname, "artifacts/cert"));
+
+const resolveTlsPath = (envVarValue) => {
+    if (!envVarValue) {
+        return null;
+    }
+    const resolved = path.resolve(tlsCertBaseDir, envVarValue);
+    const relative = path.relative(tlsCertBaseDir, resolved);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        return null; // escapes the allowed base directory
+    }
+    return resolved;
+};
+
+const tlsKeyPath = resolveTlsPath(process.env.TLS_KEY_PATH);
+const tlsCertPath = resolveTlsPath(process.env.TLS_CERT_PATH);
 const httpsOptions = tlsKeyPath && tlsCertPath && fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath) ? {
     key: fs.readFileSync(tlsKeyPath),
     cert: fs.readFileSync(tlsCertPath)
