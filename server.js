@@ -18,7 +18,16 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 // Application config properties
-const { port, db, cookieSecret, cookieDomain, cookieName, cookieMaxAge } = require("./config/config");
+const {
+    port,
+    db,
+    cookieSecret,
+    cookieDomain,
+    cookieName,
+    cookieMaxAge,
+    cookieSecure,
+    trustProxy
+} = require("./config/config");
 // Fix for A6-Sensitive Data Exposure / CWE-319
 // Load keys for establishing a secure HTTPS connection.
 // Key material is never committed: supply it at runtime through the
@@ -81,6 +90,18 @@ MongoClient.connect(db, (err, db) => {
     app.use(nosniff());
     */
 
+    // Fix for A5 - Security MisConfig / CWE-522
+    // Trust the declared number of reverse-proxy hops so a request that a
+    // TLS-terminating proxy forwarded over cleartext is still recognised as
+    // HTTPS ("X-Forwarded-Proto"); without this Express would refuse to emit the
+    // Secure session cookie configured below on proxy-terminated deployments
+    // (Heroku, docker-compose). Disabled unless TRUST_PROXY says how many
+    // proxies are in front, so client-supplied forwarding headers are never
+    // trusted blindly.
+    if (trustProxy) {
+        app.set("trust proxy", trustProxy);
+    }
+
     // Adding/ remove HTTP Headers for security
     app.use(favicon(__dirname + "/app/assets/favicon.ico"));
 
@@ -138,7 +159,18 @@ MongoClient.connect(db, (err, db) => {
             // reads the session cookie from client-side JavaScript (the login
             // page only probes its own "testcookie"), so this is transparent to
             // the UI and to the e2e suite.
-            httpOnly: true
+            httpOnly: true,
+            // Fix for A6 - Sensitive Data Exposure / CWE-522
+            // Mark the session cookie "Secure" so the browser only ever sends
+            // this credential back over an encrypted connection and it can no
+            // longer be captured from - or replayed after downgrading to -
+            // cleartext traffic. The flag follows how the app is actually
+            // served: it is true whenever this process serves HTTPS
+            // (TLS_KEY_PATH / TLS_CERT_PATH) and for proxy-terminated TLS
+            // (COOKIE_SECURE=true with TRUST_PROXY), and false only on the
+            // plain-HTTP development/e2e path, where a Secure cookie would be
+            // silently dropped by the browser and break every login.
+            secure: cookieSecure
         }
 
         /*
