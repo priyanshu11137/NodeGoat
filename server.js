@@ -113,10 +113,13 @@ MongoClient.connect(db, (err, db) => {
             domain: cookieDomain,
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-path
             // Explicitly set the cookie path so its scope is not left to the implicit default.
-            path: "/"
+            path: "/",
+            // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires
+            // Explicitly set a session timeout (30 minutes) via maxAge (ms). express-session derives
+            // the cookie's Expires attribute from maxAge, which is the recommended way to set it.
+            maxAge: 30 * 60 * 1000
             /*
             // Fix for A3 - XSS
-            // TODO: Add "maxAge"
             httpOnly: true
             // Remember to start an HTTPS server to get this working
             // secure: true
