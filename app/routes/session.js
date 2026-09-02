@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
@@ -173,7 +174,14 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        if (password !== verify) {
+        // Fix for CWE-208 - Observable Timing Discrepancy
+        // Use a constant-time comparison to avoid leaking timing information
+        // about how many characters of the password/verify fields match.
+        const passwordBuffer = Buffer.from(password, "utf-8");
+        const verifyBuffer = Buffer.from(verify, "utf-8");
+        const passwordsMatch = passwordBuffer.length === verifyBuffer.length &&
+            crypto.timingSafeEqual(passwordBuffer, verifyBuffer);
+        if (!passwordsMatch) {
             errors.verifyError = "Password must match";
             return false;
         }

@@ -6,6 +6,9 @@ module.exports = {
     port,
     db,
     cookieSecret: "session_cookie_secret_key_here",
+    // Explicit cookie domain for the session cookie. Left undefined by default
+    // (no behavior change) unless COOKIE_DOMAIN is set in the environment.
+    cookieDomain: process.env.COOKIE_DOMAIN || undefined,
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
     hostName: "localhost",

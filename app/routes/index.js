@@ -66,10 +66,45 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
+    // Domains that are explicitly trusted destinations for the
+    // "Learning Resources" link (e.g. https://www.khanacademy.org/...)
+    const ALLOWED_REDIRECT_HOSTS = ["www.khanacademy.org"];
+
+    // Validate that the requested redirect target is either a same-origin
+    // relative path or an explicitly allowlisted external host. This
+    // prevents open redirects (CWE-601) via arbitrary attacker supplied URLs.
+    const isSafeRedirectUrl = (url) => {
+        if (typeof url !== "string" || url.length === 0) {
+            return false;
+        }
+
+        // Same-origin relative path: must start with a single "/" and must
+        // not be a protocol-relative URL ("//host/..." or "/\host/...")
+        // which browsers treat as an absolute URL to another host.
+        if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
+            return true;
+        }
+
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+                return false;
+            }
+            return ALLOWED_REDIRECT_HOSTS.includes(parsed.hostname);
+        } catch (err) {
+            return false;
+        }
+    };
+
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        const target = req.query.url;
+        if (isSafeRedirectUrl(target)) {
+            return res.redirect(target);
+        }
+        // Unknown/untrusted destination: fall back to a safe default
+        // instead of redirecting to an attacker-controlled URL.
+        return res.redirect("/");
     });
 
     // Research Page

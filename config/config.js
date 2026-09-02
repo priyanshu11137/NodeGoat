@@ -1,11 +1,19 @@
+"use strict";
+
 const _ = require("underscore");
-const path = require("path");
 const util = require("util");
 
-const finalEnv = process.env.NODE_ENV || "development";
+const ENV_CONFIG_LOADERS = {
+    development: () => require("./env/development.js"),
+    production: () => require("./env/production.js"),
+    test: () => require("./env/test.js")
+};
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+const requestedEnv = (process.env.NODE_ENV || "development").toLowerCase();
+const finalEnv = Object.prototype.hasOwnProperty.call(ENV_CONFIG_LOADERS, requestedEnv) ? requestedEnv : "development";
+
+const allConf = require("./env/all.js");
+const envConf = ENV_CONFIG_LOADERS[finalEnv]() || {};
 
 const config = { ...allConf, ...envConf };
 
