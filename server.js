@@ -30,17 +30,15 @@ const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // 
 // Guarded with fs.existsSync so a missing/placeholder cert never crashes the
 // process -- in that case the server safely falls back to plain HTTP so
 // local dev/test workflows keep working.
-const tlsKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-const tlsCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
-
 function loadHttpsOptions() {
-    if (!fs.existsSync(tlsKeyPath) || !fs.existsSync(tlsCertPath)) {
+    if (!fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.key")) ||
+        !fs.existsSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))) {
         return null;
     }
     try {
         return {
-            key: fs.readFileSync(tlsKeyPath),
-            cert: fs.readFileSync(tlsCertPath)
+            key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
+            cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
         };
     } catch (err) {
         console.log("Warning: unable to read TLS key/cert material, falling back to HTTP");
