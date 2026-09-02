@@ -21,37 +21,17 @@ const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // 
 
 // Fix for A6-Sensitive Data Exposure / CWE-319 (Cleartext Transmission)
 // Load keys for establishing a secure HTTPS connection when TLS material is
-// actually configured/available. TLS_KEY_PATH / TLS_CERT_PATH allow pointing
-// at real certificate material (e.g. issued via a secrets manager); the
-// artifacts/cert paths are used as a local-dev default when present.
+// actually present. The cert/key paths are fixed, literal, in-repo paths
+// (never derived from environment variables or any other external input) --
+// this eliminates path-traversal (CWE-22) at the source rather than trying
+// to validate an attacker/operator-influenced path after the fact. This app
+// has no deployed environment that needs a custom cert location; operators
+// who need real TLS material should place it at these well-known paths.
 // Guarded with fs.existsSync so a missing/placeholder cert never crashes the
 // process -- in that case the server safely falls back to plain HTTP so
 // local dev/test workflows keep working.
-const defaultTlsKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
-const defaultTlsCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
-const allowedCertsDir = path.resolve(__dirname, "./artifacts/cert");
-
-// Fix for CWE-22 (Path Traversal): TLS_KEY_PATH / TLS_CERT_PATH are meant to
-// be set by trusted operators/deployment config, not end-user input, but we
-// still defensively canonicalize and constrain them. Only an env value that
-// resolves to an absolute path inside the designated certs directory is
-// accepted; anything else (including relative paths with ".." segments that
-// would escape the intended directory) safely falls back to the built-in
-// default path, exactly as if the env var were unset.
-function resolveCertPath(envValue, defaultPath, allowedDir) {
-    if (!envValue) {
-        return defaultPath;
-    }
-    const resolvedPath = path.resolve(envValue);
-    if (resolvedPath === allowedDir || resolvedPath.startsWith(allowedDir + path.sep)) {
-        return resolvedPath;
-    }
-    console.log(`Warning: TLS path "${envValue}" resolves outside the allowed certs directory, falling back to default`);
-    return defaultPath;
-}
-
-const tlsKeyPath = resolveCertPath(process.env.TLS_KEY_PATH, defaultTlsKeyPath, allowedCertsDir);
-const tlsCertPath = resolveCertPath(process.env.TLS_CERT_PATH, defaultTlsCertPath, allowedCertsDir);
+const tlsKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const tlsCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
 
 function loadHttpsOptions() {
     if (!fs.existsSync(tlsKeyPath) || !fs.existsSync(tlsCertPath)) {
