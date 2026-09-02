@@ -17,4 +17,18 @@ describe("/learn behaviour", () => {
     cy.visitPage("/learn?url=/dashboard");
     cy.url().should("include", "dashboard");
   });
+
+  it("Should not redirect to an absolute untrusted url", () => {
+    cy.userSignIn();
+    cy.visitPage("/learn?url=https://evil.example.com/phishing");
+    cy.url().should("not.include", "evil.example.com");
+    cy.url().should("include", "dashboard");
+  });
+
+  it("Should not redirect to a protocol relative untrusted url", () => {
+    cy.userSignIn();
+    cy.visitPage("/learn?url=//evil.example.com");
+    cy.url().should("not.include", "evil.example.com");
+    cy.url().should("include", "dashboard");
+  });
 });

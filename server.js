@@ -4,28 +4,89 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+// Application config properties
+const {
+    port,
+    db,
+    cookieSecret,
+    cookieDomain,
+    cookieName,
+    cookieMaxAge,
+    cookieSecure,
+    trustProxy
+} = require("./config/config");
+// Fix for A6-Sensitive Data Exposure / CWE-319
+// Load keys for establishing a secure HTTPS connection.
+// Key material is never committed: supply it at runtime through the
+// TLS_KEY_PATH / TLS_CERT_PATH environment variables, pointing at a locally
+// generated key/cert pair inside the TLS material directory (see below), e.g.
+//   openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
+//       -keyout artifacts/cert/server.key -out artifacts/cert/server.crt
+//   export TLS_KEY_PATH=server.key TLS_CERT_PATH=server.crt
+// Both variables set => the app serves HTTPS. Neither set => it falls back to
+// plain HTTP, which keeps local development, the e2e suite and deployments that
+// terminate TLS at a proxy (docker-compose, Heroku) working unchanged.
+const tlsKeyPath = process.env.TLS_KEY_PATH;
+const tlsCertPath = process.env.TLS_CERT_PATH;
+if (Boolean(tlsKeyPath) !== Boolean(tlsCertPath)) {
+    // Half-configured TLS is a misconfiguration: fail closed rather than
+    // silently downgrading to cleartext.
+    console.log("Error: TLS: set both TLS_KEY_PATH and TLS_CERT_PATH, or neither");
+    process.exit(1);
+}
+// Fix for A5-Security MisConfig / CWE-22 (path traversal)
+// The two paths above are supplied by the environment, so they are only ever
+// honoured inside one allowlisted directory of TLS material ("artifacts/cert"
+// by default; set TLS_MATERIAL_DIR for deployments that keep their key pair
+// somewhere else). Each configured path is resolved against that base and both
+// the base and the target are canonicalised with "realpathSync" before the
+// read, so a "..", an absolute path or a symlink leading out of the directory
+// can never turn the server start-up into a read of an unrelated file such as
+// "/etc/shadow" or another tenant's private key. Anything that escapes the
+// base - or is not a readable regular file - fails closed with a clear error
+// instead of being read.
+const tlsMaterialDir = process.env.TLS_MATERIAL_DIR || path.join(__dirname, "artifacts", "cert");
+
+const readTlsMaterial = (envName, configuredPath) => {
+    let baseDir;
+    let materialPath;
+    try {
+        baseDir = fs.realpathSync(path.resolve(tlsMaterialDir));
+        materialPath = fs.realpathSync(path.resolve(baseDir, configuredPath));
+    } catch (err) {
+        console.log(`Error: TLS: cannot resolve ${envName} inside ${tlsMaterialDir}: ${err.code}`);
+        process.exit(1);
+    }
+    if (!materialPath.startsWith(baseDir + path.sep)) {
+        console.log(`Error: TLS: ${envName} must point at a file inside ${baseDir}`);
+        process.exit(1);
+    }
+    if (!fs.statSync(materialPath).isFile()) {
+        console.log(`Error: TLS: ${envName} must point at a regular file inside ${baseDir}`);
+        process.exit(1);
+    }
+    return fs.readFileSync(materialPath);
 };
-*/
+
+const httpsOptions = tlsKeyPath ? {
+    key: readTlsMaterial("TLS_KEY_PATH", tlsKeyPath),
+    cert: readTlsMaterial("TLS_CERT_PATH", tlsCertPath),
+    // Do not negotiate legacy protocol versions.
+    minVersion: "TLSv1.2"
+} : null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -64,6 +125,18 @@ MongoClient.connect(db, (err, db) => {
     app.use(nosniff());
     */
 
+    // Fix for A5 - Security MisConfig / CWE-522
+    // Trust the declared number of reverse-proxy hops so a request that a
+    // TLS-terminating proxy forwarded over cleartext is still recognised as
+    // HTTPS ("X-Forwarded-Proto"); without this Express would refuse to emit the
+    // Secure session cookie configured below on proxy-terminated deployments
+    // (Heroku, docker-compose). Disabled unless TRUST_PROXY says how many
+    // proxies are in front, so client-supplied forwarding headers are never
+    // trusted blindly.
+    if (trustProxy) {
+        app.set("trust proxy", trustProxy);
+    }
+
     // Adding/ remove HTTP Headers for security
     app.use(favicon(__dirname + "/app/assets/favicon.ico"));
 
@@ -80,14 +153,60 @@ MongoClient.connect(db, (err, db) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
         secret: cookieSecret,
+        // Fix for A5 - Security MisConfig / CWE-522
+        // Use a generic cookie name. The express-session default
+        // ("connect.sid") fingerprints the framework in every response, which
+        // helps an attacker pick stack-specific attacks. Nothing reads the
+        // cookie by name (the client just echoes it back), so renaming it is
+        // transparent to the app and to the e2e suite.
+        name: cookieName,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
+        resave: true,
+        cookie: {
+            // Fix for A5 - Security MisConfig / CWE-522
+            // Scope the session cookie explicitly instead of letting it default
+            // to whatever host served the response. Falsy (unset COOKIE_DOMAIN)
+            // keeps the cookie host-only so it is never shared with sub-domains.
+            domain: cookieDomain,
+            // Fix for A5 - Security MisConfig / CWE-522
+            // Set the cookie path explicitly instead of relying on the
+            // implicit default, so the scope of the session credential is
+            // stated in one place and cannot shift with the mount point. The
+            // app serves every route (login, dashboard, tutorial, assets) from
+            // the root, so "/" is the narrowest path that keeps sessions
+            // working across all of them.
+            path: "/",
+            // Fix for A5 - Security MisConfig / CWE-522
+            // Give the session cookie a bounded lifetime instead of leaving it
+            // as a browser-session credential with no expiry: express-session
+            // derives the cookie "Expires" attribute from "maxAge" (in
+            // milliseconds), so the credential stops being replayable once the
+            // window closes. 30 minutes by default (COOKIE_MAX_AGE overrides
+            // it) is short enough for a financial application and long enough
+            // that normal logins and the e2e suite are unaffected.
+            maxAge: cookieMaxAge,
+            // Fix for A3 - XSS / CWE-522
+            // Mark the session cookie HttpOnly so it is only ever attached to
+            // HTTP requests by the browser and is unreadable from
+            // "document.cookie". Injected script can then no longer exfiltrate
+            // the session credential and hijack the account. Nothing in the app
+            // reads the session cookie from client-side JavaScript (the login
+            // page only probes its own "testcookie"), so this is transparent to
+            // the UI and to the e2e suite.
+            httpOnly: true,
+            // Fix for A6 - Sensitive Data Exposure / CWE-522
+            // Mark the session cookie "Secure" so the browser only ever sends
+            // this credential back over an encrypted connection and it can no
+            // longer be captured from - or replayed after downgrading to -
+            // cleartext traffic. The flag follows how the app is actually
+            // served: it is true whenever this process serves HTTPS
+            // (TLS_KEY_PATH / TLS_CERT_PATH) and for proxy-terminated TLS
+            // (COOKIE_SECURE=true with TRUST_PROXY), and false only on the
+            // plain-HTTP development/e2e path, where a Secure cookie would be
+            // silently dropped by the browser and break every login.
+            secure: cookieSecure
+        }
 
         /*
         // Fix for A3 - XSS
@@ -101,16 +220,22 @@ MongoClient.connect(db, (err, db) => {
 
     }));
 
-    /*
-    // Fix for A8 - CSRF
-    // Enable Express csrf protection
+    // Fix for A8 - CSRF / CWE-352
+    // Enable Express csrf protection. Mounted after the session and body
+    // parsers (both are required to store the secret and to read the token out
+    // of a form post) so every state-changing request (POST/PUT/PATCH/DELETE)
+    // must present a token bound to the caller's own session. A third party
+    // cannot read that token, so it can no longer make the browser submit a
+    // forged, silently authenticated request. Safe methods (GET/HEAD/OPTIONS)
+    // are not challenged, so navigation, static assets and the tutorial pages
+    // keep working unchanged.
     app.use(csrf());
-    // Make csrf token available in templates
+    // Make csrf token available in templates, so every form can render it in
+    // its hidden "_csrf" field - the field csurf validates on submit.
     app.use((req, res, next) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -141,17 +266,19 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Fix for A6-Sensitive Data Exposure / CWE-319
+    // Use the secure HTTPS protocol whenever TLS material was supplied at
+    // runtime; only fall back to cleartext HTTP for local development, where no
+    // key/cert pair is available.
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.log("Warning: no TLS material configured - serving cleartext HTTP (development only)");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
