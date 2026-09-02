@@ -102,11 +102,9 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
+        // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name
+        // Use a non-default cookie name so the session cookie doesn't reveal the underlying stack
+        name: "sessionId",
         cookie: {
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain
             // Explicitly set the cookie domain (configurable via COOKIE_DOMAIN env var) instead of
