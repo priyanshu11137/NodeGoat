@@ -93,6 +93,13 @@ MongoClient.connect(db, (err, db) => {
         extended: false
     }));
 
+    // Fix for A6-Sensitive Data Exposure / CWE-319 (Cleartext Transmission)
+    // Determine up-front (before the session middleware is registered) whether
+    // this process is actually going to serve HTTPS, so the session cookie's
+    // `secure` flag below can reflect reality instead of being hardcoded.
+    const httpsOptions = loadHttpsOptions();
+    const isHttps = !!httpsOptions;
+
     // Enable session management using express middleware
     app.use(session({
         // genid: (req) => {
@@ -120,11 +127,14 @@ MongoClient.connect(db, (err, db) => {
             maxAge: 30 * 60 * 1000,
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-httponly
             // Prevent client-side JS from accessing the session cookie (mitigates session-token theft via XSS).
-            httpOnly: true
-            /*
-            // Remember to start an HTTPS server to get this working
-            // secure: true
-            */
+            httpOnly: true,
+            // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-secure
+            // Mark the cookie Secure only when this process is actually serving HTTPS (real TLS
+            // key/cert material configured -- see loadHttpsOptions()/isHttps above). Browsers drop
+            // Secure cookies sent over plain HTTP, so hardcoding `true` would break session-based
+            // functionality (login, etc.) in the current dev/test setup which has no valid cert;
+            // this becomes `true` automatically once TLS material is provisioned.
+            secure: isHttps
         }
 
     }));
@@ -171,7 +181,8 @@ MongoClient.connect(db, (err, db) => {
     // Use secure HTTPS when valid TLS key/cert material is configured and
     // available; otherwise fall back to plain HTTP so local dev/test setups
     // (which have no real certificate provisioned) keep working unchanged.
-    const httpsOptions = loadHttpsOptions();
+    // (httpsOptions/isHttps computed earlier, before session middleware registration,
+    // so the session cookie's `secure` flag above can reflect this.)
     if (httpsOptions) {
         try {
             https.createServer(httpsOptions, app).listen(port, () => {
