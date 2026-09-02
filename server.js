@@ -129,7 +129,16 @@ MongoClient.connect(db, (err, db) => {
             // window closes. 30 minutes by default (COOKIE_MAX_AGE overrides
             // it) is short enough for a financial application and long enough
             // that normal logins and the e2e suite are unaffected.
-            maxAge: cookieMaxAge
+            maxAge: cookieMaxAge,
+            // Fix for A3 - XSS / CWE-522
+            // Mark the session cookie HttpOnly so it is only ever attached to
+            // HTTP requests by the browser and is unreadable from
+            // "document.cookie". Injected script can then no longer exfiltrate
+            // the session credential and hijack the account. Nothing in the app
+            // reads the session cookie from client-side JavaScript (the login
+            // page only probes its own "testcookie"), so this is transparent to
+            // the UI and to the e2e suite.
+            httpOnly: true
         }
 
         /*
