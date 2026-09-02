@@ -117,10 +117,11 @@ MongoClient.connect(db, (err, db) => {
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires
             // Explicitly set a session timeout (30 minutes) via maxAge (ms). express-session derives
             // the cookie's Expires attribute from maxAge, which is the recommended way to set it.
-            maxAge: 30 * 60 * 1000
-            /*
-            // Fix for A3 - XSS
+            maxAge: 30 * 60 * 1000,
+            // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-httponly
+            // Prevent client-side JS from accessing the session cookie (mitigates session-token theft via XSS).
             httpOnly: true
+            /*
             // Remember to start an HTTPS server to get this working
             // secure: true
             */
