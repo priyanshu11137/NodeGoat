@@ -27,5 +27,11 @@ test/e2e/videos/
 .env.local
 .env
 
+# ignore locally generated TLS key material (never commit private keys)
+artifacts/cert/*.key
+artifacts/cert/*.pem
+*.key
+*.pem
+
 # ignore Snyk Code scanner files
 .dccache

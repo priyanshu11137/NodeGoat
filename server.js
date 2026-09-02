@@ -17,13 +17,17 @@ const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 /*
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
+// Load keys for establishing secure HTTPS connection.
+// Key material is never committed: supply it at runtime through the
+// TLS_KEY_PATH / TLS_CERT_PATH environment variables, pointing at a locally
+// generated key/cert pair, e.g.
+//   openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
+//       -keyout "$TLS_KEY_PATH" -out "$TLS_CERT_PATH"
 const fs = require("fs");
 const https = require("https");
-const path = require("path");
 const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+    key: fs.readFileSync(process.env.TLS_KEY_PATH),
+    cert: fs.readFileSync(process.env.TLS_CERT_PATH)
 };
 */
 
