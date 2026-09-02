@@ -1,8 +1,24 @@
+const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
     environmentalScripts
 } = require("../../config/config");
+
+// Constant-time string comparison to avoid observable timing discrepancies
+// (CWE-208) when comparing security-sensitive values such as passwords.
+const constantTimeEquals = (a, b) => {
+    const bufA = Buffer.from(String(a), "utf-8");
+    const bufB = Buffer.from(String(b), "utf-8");
+    // timingSafeEqual requires equal-length buffers; a length mismatch is
+    // itself not attacker-controllable secret data, so it is safe to
+    // short-circuit here before delegating to timingSafeEqual for the
+    // constant-time comparison of equal-length buffers.
+    if (bufA.length !== bufB.length) {
+        return false;
+    }
+    return crypto.timingSafeEqual(bufA, bufB);
+};
 
 /* The SessionHandler must be constructed with a connected db */
 function SessionHandler(db) {
@@ -173,7 +189,7 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        if (password !== verify) {
+        if (!constantTimeEquals(password, verify)) {
             errors.verifyError = "Password must match";
             return false;
         }
