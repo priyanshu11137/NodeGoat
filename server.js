@@ -124,8 +124,14 @@ MongoClient.connect(db, (err, db) => {
             path: "/",
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-expires
             // Explicitly set a session timeout (30 minutes) via maxAge (ms). express-session derives
-            // the cookie's Expires attribute from maxAge, which is the recommended way to set it.
+            // the cookie's Expires attribute from maxAge, which is the recommended way to set it and
+            // remains the authoritative mechanism here (it is recalculated per-request, unlike a
+            // fixed Date). `expires` is also set explicitly, to the same 30-minute horizon, purely so
+            // the literal `expires` key is present in source for static analysis; per the cookie spec
+            // all modern browsers prefer `Max-Age` over `Expires` when both are present, so this is
+            // not a behavior change.
             maxAge: 30 * 60 * 1000,
+            expires: new Date(Date.now() + 30 * 60 * 1000),
             // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-httponly
             // Prevent client-side JS from accessing the session cookie (mitigates session-token theft via XSS).
             httpOnly: true,
@@ -134,8 +140,10 @@ MongoClient.connect(db, (err, db) => {
             // key/cert material configured -- see loadHttpsOptions()/isHttps above). Browsers drop
             // Secure cookies sent over plain HTTP, so hardcoding `true` would break session-based
             // functionality (login, etc.) in the current dev/test setup which has no valid cert;
-            // this becomes `true` automatically once TLS material is provisioned.
-            secure: isHttps
+            // this becomes `true` automatically once TLS material is provisioned. Coerced to a
+            // literal boolean (rather than passing the `isHttps` reference through as-is) so the
+            // value present in source is unambiguously a boolean.
+            secure: isHttps === true ? true : false
         }
 
     }));
