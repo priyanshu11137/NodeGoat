@@ -13,7 +13,8 @@ const envConfMap = {
     production: require("./env/production.js"),
     test: require("./env/test.js")
 };
-const envConf = envConfMap[finalEnv.toLowerCase()] || {};
+const envKey = finalEnv.toLowerCase();
+const envConf = Object.prototype.hasOwnProperty.call(envConfMap, envKey) ? envConfMap[envKey] : {};
 
 const config = { ...allConf, ...envConf };
 
