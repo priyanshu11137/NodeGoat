@@ -15,3 +15,11 @@ services:
     user: mongodb
     expose:
       - 27017
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
