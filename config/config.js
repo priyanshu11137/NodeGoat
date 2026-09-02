@@ -1,11 +1,19 @@
-const _ = require("underscore");
-const path = require("path");
 const util = require("util");
 
-const finalEnv = process.env.NODE_ENV || "development";
+const allConf = require("./env/all.js");
 
-const allConf = require(path.resolve(__dirname + "/../config/env/all.js"));
-const envConf = require(path.resolve(__dirname + "/../config/env/" + finalEnv.toLowerCase() + ".js")) || {};
+// Static allowlist of the supported environments. Every config module is
+// required from a literal path, so an attacker-controlled NODE_ENV can never
+// make this file load and evaluate arbitrary code from the filesystem.
+const envConfs = {
+    development: require("./env/development.js"),
+    production: require("./env/production.js"),
+    test: require("./env/test.js")
+};
+
+const finalEnv = (process.env.NODE_ENV || "development").toLowerCase();
+
+const envConf = Object.prototype.hasOwnProperty.call(envConfs, finalEnv) ? envConfs[finalEnv] : {};
 
 const config = { ...allConf, ...envConf };
 
