@@ -15,8 +15,7 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
+// Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
 // Load keys for establishing secure HTTPS connection.
 // NOTE: no private key/cert material is committed to this repo. Provide your
 // own locally-generated, gitignored key/cert pair and point TLS_KEY_PATH /
@@ -31,7 +30,6 @@ const httpsOptions = tlsKeyPath && tlsCertPath && fs.existsSync(tlsKeyPath) && f
     key: fs.readFileSync(tlsKeyPath),
     cert: fs.readFileSync(tlsCertPath)
 } : null;
-*/
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -155,17 +153,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
+    // Use secure HTTPS protocol when TLS material is configured via
+    // TLS_KEY_PATH / TLS_CERT_PATH. Fall back to plain HTTP (with a
+    // warning) so existing dev/test/CI workflows that don't provide certs
+    // keep working unchanged.
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.warn("TLS_KEY_PATH/TLS_CERT_PATH not configured; falling back to insecure HTTP. Do not use this in production.");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
