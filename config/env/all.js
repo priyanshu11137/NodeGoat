@@ -9,11 +9,18 @@ let db = process.env.MONGODB_URI || "mongodb://localhost:27017/nodegoat";
 const httpsKeyPath = process.env.HTTPS_KEY_PATH || "artifacts/cert/server.key";
 const httpsCertPath = process.env.HTTPS_CERT_PATH || "artifacts/cert/server.crt";
 
+// Domain the session cookie is scoped to. Set COOKIE_DOMAIN per deployment so
+// the cookie is only sent back to that domain. When it is not configured the
+// value stays undefined, which makes the browser store a host-only cookie (the
+// most restrictive scope) and keeps local/demo runs working.
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
 module.exports = {
     port,
     db,
     httpsKeyPath,
     httpsCertPath,
+    cookieDomain,
     cookieSecret: "session_cookie_secret_key_here",
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
