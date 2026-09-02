@@ -27,8 +27,31 @@ const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // 
 // Guarded with fs.existsSync so a missing/placeholder cert never crashes the
 // process -- in that case the server safely falls back to plain HTTP so
 // local dev/test workflows keep working.
-const tlsKeyPath = process.env.TLS_KEY_PATH || path.resolve(__dirname, "./artifacts/cert/server.key");
-const tlsCertPath = process.env.TLS_CERT_PATH || path.resolve(__dirname, "./artifacts/cert/server.crt");
+const defaultTlsKeyPath = path.resolve(__dirname, "./artifacts/cert/server.key");
+const defaultTlsCertPath = path.resolve(__dirname, "./artifacts/cert/server.crt");
+const allowedCertsDir = path.resolve(__dirname, "./artifacts/cert");
+
+// Fix for CWE-22 (Path Traversal): TLS_KEY_PATH / TLS_CERT_PATH are meant to
+// be set by trusted operators/deployment config, not end-user input, but we
+// still defensively canonicalize and constrain them. Only an env value that
+// resolves to an absolute path inside the designated certs directory is
+// accepted; anything else (including relative paths with ".." segments that
+// would escape the intended directory) safely falls back to the built-in
+// default path, exactly as if the env var were unset.
+function resolveCertPath(envValue, defaultPath, allowedDir) {
+    if (!envValue) {
+        return defaultPath;
+    }
+    const resolvedPath = path.resolve(envValue);
+    if (resolvedPath === allowedDir || resolvedPath.startsWith(allowedDir + path.sep)) {
+        return resolvedPath;
+    }
+    console.log(`Warning: TLS path "${envValue}" resolves outside the allowed certs directory, falling back to default`);
+    return defaultPath;
+}
+
+const tlsKeyPath = resolveCertPath(process.env.TLS_KEY_PATH, defaultTlsKeyPath, allowedCertsDir);
+const tlsCertPath = resolveCertPath(process.env.TLS_CERT_PATH, defaultTlsCertPath, allowedCertsDir);
 
 function loadHttpsOptions() {
     if (!fs.existsSync(tlsKeyPath) || !fs.existsSync(tlsCertPath)) {
