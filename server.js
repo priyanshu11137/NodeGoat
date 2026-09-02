@@ -23,6 +23,7 @@ const {
     db,
     cookieSecret,
     cookieDomain,
+    cookieSecure,
     sessionTimeoutMs,
     httpsKeyPath,
     httpsCertPath
@@ -48,6 +49,18 @@ const loadHttpsOptions = () => {
         return null;
     }
 };
+
+// Resolved once, at module load, because the session middleware below is
+// registered before the listener is created and needs to know the transport.
+const httpsOptions = loadHttpsOptions();
+
+// Fix for A2/A6 - Sensitive Data Exposure
+// "secure" tells the browser to send the session cookie over HTTPS only. It is
+// derived from the very same TLS decision that picks the listener, so the flag
+// can never claim HTTPS while the app is serving the plain HTTP fallback (which
+// would silently drop the cookie and break login). COOKIE_SECURE overrides it
+// for deployments that terminate TLS in front of the app.
+const secureCookie = typeof cookieSecure === "boolean" ? cookieSecure : httpsOptions !== null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -131,7 +144,11 @@ MongoClient.connect(db, (err, db) => {
             domain: cookieDomain,
             path: "/",
             maxAge: sessionTimeoutMs,
-            httpOnly: true
+            httpOnly: true,
+            // Fix for A6 - Sensitive Data Exposure
+            // Set explicitly (never left to the express-session default) and
+            // tied to the transport actually served; see "secureCookie" above.
+            secure: secureCookie
         }
 
         /*
@@ -195,7 +212,6 @@ MongoClient.connect(db, (err, db) => {
     // Fix for A6-Sensitive Data Exposure
     // Use the secure HTTPS protocol whenever TLS material is configured and
     // readable; otherwise fall back to HTTP so the app still starts.
-    const httpsOptions = loadHttpsOptions();
     if (httpsOptions) {
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);

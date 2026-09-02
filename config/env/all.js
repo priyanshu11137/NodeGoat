@@ -22,12 +22,22 @@ const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 // which is long enough for a normal browsing session (and the e2e suite).
 const sessionTimeoutMs = parseInt(process.env.SESSION_TIMEOUT_MS, 10) || 30 * 60 * 1000;
 
+// Whether the session cookie carries the "secure" attribute, i.e. the browser
+// only sends it back over HTTPS. Leave COOKIE_SECURE unset (the default) to
+// follow the transport the app actually serves: server.js enables it when the
+// configured TLS key/cert are loaded and leaves it off for the plain HTTP
+// fallback, so the flag and the listener can never disagree. Set
+// COOKIE_SECURE=true when TLS is terminated in front of the app (proxy/LB).
+const cookieSecure = typeof process.env.COOKIE_SECURE === "string" ?
+    process.env.COOKIE_SECURE === "true" : undefined;
+
 module.exports = {
     port,
     db,
     httpsKeyPath,
     httpsCertPath,
     cookieDomain,
+    cookieSecure,
     sessionTimeoutMs,
     cookieSecret: "session_cookie_secret_key_here",
     cryptoKey: "a_secure_key_for_crypto_here",
