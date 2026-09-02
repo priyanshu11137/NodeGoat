@@ -111,7 +111,15 @@ MongoClient.connect(db, (err, db) => {
             // Scope the session cookie explicitly instead of letting it default
             // to whatever host served the response. Falsy (unset COOKIE_DOMAIN)
             // keeps the cookie host-only so it is never shared with sub-domains.
-            domain: cookieDomain
+            domain: cookieDomain,
+            // Fix for A5 - Security MisConfig / CWE-522
+            // Set the cookie path explicitly instead of relying on the
+            // implicit default, so the scope of the session credential is
+            // stated in one place and cannot shift with the mount point. The
+            // app serves every route (login, dashboard, tutorial, assets) from
+            // the root, so "/" is the narrowest path that keeps sessions
+            // working across all of them.
+            path: "/"
         }
 
         /*
