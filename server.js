@@ -10,25 +10,36 @@ const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
-/*
+// Application config properties
+const { port, db, cookieSecret, cookieDomain, httpsKeyPath, httpsCertPath } = require("./config/config");
+
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection.
+// Load keys for establishing a secure HTTPS connection.
 // The private key is NOT stored in this repository: generate your own key/cert
 // and set HTTPS_KEY_PATH / HTTPS_CERT_PATH (see config/env/all.js).
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
-const { httpsKeyPath, httpsCertPath } = require("./config/config");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, httpsKeyPath)),
-    cert: fs.readFileSync(path.resolve(__dirname, httpsCertPath))
+// When no readable TLS material is configured we keep serving plain HTTP so
+// local runs, docker-compose and CI can still boot the app.
+const loadHttpsOptions = () => {
+    if (!httpsKeyPath || !httpsCertPath) {
+        return null;
+    }
+    try {
+        return {
+            key: fs.readFileSync(path.resolve(__dirname, httpsKeyPath)),
+            cert: fs.readFileSync(path.resolve(__dirname, httpsCertPath))
+        };
+    } catch (err) {
+        console.log(`TLS key/cert not available (${err.code}), starting without TLS`);
+        return null;
+    }
 };
-*/
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -151,17 +162,18 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
     // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Use the secure HTTPS protocol whenever TLS material is configured and
+    // readable; otherwise fall back to HTTP so the app still starts.
+    const httpsOptions = loadHttpsOptions();
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port} - TLS disabled, no key/cert configured`);
+        });
+    }
 
 });
