@@ -14,6 +14,8 @@ services:
     image: mongo:4.4
     user: mongodb
     read_only: true
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - mongo-data:/data/db
       - mongo-configdb:/data/configdb
