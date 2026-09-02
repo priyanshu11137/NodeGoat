@@ -14,7 +14,7 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret } = require("./config/config"); // Application config properties
+const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
 /*
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing secure HTTPS connection
@@ -82,22 +82,26 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
+        resave: true,
         /*
         // Fix for A5 - Security MisConfig
         // Use generic cookie name
         key: "sessionId",
         */
-
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
         cookie: {
+            // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-domain
+            // Explicitly set the cookie domain (configurable via COOKIE_DOMAIN env var) instead of
+            // relying on the implicit browser default. Left undefined when unset, so behavior
+            // is unchanged in local/dev environments without a fixed domain.
+            domain: cookieDomain
+            /*
+            // Fix for A3 - XSS
+            // TODO: Add "maxAge"
             httpOnly: true
             // Remember to start an HTTPS server to get this working
             // secure: true
+            */
         }
-        */
 
     }));
 
