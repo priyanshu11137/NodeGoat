@@ -15,6 +15,11 @@ module.exports = {
     // ("connect.sid") advertises the server stack to anyone inspecting the
     // response. Override with COOKIE_NAME per environment if desired.
     cookieName: process.env.COOKIE_NAME || "sessionId",
+    // Bounded lifetime (in milliseconds) for the session cookie, so an
+    // authenticated session credential cannot live on indefinitely in the
+    // browser. Defaults to 30 minutes of inactivity, which suits a financial
+    // application; override with COOKIE_MAX_AGE per environment.
+    cookieMaxAge: Number(process.env.COOKIE_MAX_AGE) || 30 * 60 * 1000,
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
     hostName: "localhost",

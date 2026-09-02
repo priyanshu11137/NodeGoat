@@ -17,7 +17,8 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret, cookieDomain, cookieName } = require("./config/config"); // Application config properties
+// Application config properties
+const { port, db, cookieSecret, cookieDomain, cookieName, cookieMaxAge } = require("./config/config");
 // Fix for A6-Sensitive Data Exposure / CWE-319
 // Load keys for establishing a secure HTTPS connection.
 // Key material is never committed: supply it at runtime through the
@@ -119,7 +120,16 @@ MongoClient.connect(db, (err, db) => {
             // app serves every route (login, dashboard, tutorial, assets) from
             // the root, so "/" is the narrowest path that keeps sessions
             // working across all of them.
-            path: "/"
+            path: "/",
+            // Fix for A5 - Security MisConfig / CWE-522
+            // Give the session cookie a bounded lifetime instead of leaving it
+            // as a browser-session credential with no expiry: express-session
+            // derives the cookie "Expires" attribute from "maxAge" (in
+            // milliseconds), so the credential stops being replayable once the
+            // window closes. 30 minutes by default (COOKIE_MAX_AGE overrides
+            // it) is short enough for a financial application and long enough
+            // that normal logins and the e2e suite are unaffected.
+            maxAge: cookieMaxAge
         }
 
         /*
