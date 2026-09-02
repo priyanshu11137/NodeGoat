@@ -10,22 +10,41 @@ const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
-*/
+
+// Fix for A6-Sensitive Data Exposure / CWE-319 (Cleartext Transmission)
+// Load keys for establishing a secure HTTPS connection when TLS material is
+// actually configured/available. TLS_KEY_PATH / TLS_CERT_PATH allow pointing
+// at real certificate material (e.g. issued via a secrets manager); the
+// artifacts/cert paths are used as a local-dev default when present.
+// Guarded with fs.existsSync so a missing/placeholder cert never crashes the
+// process -- in that case the server safely falls back to plain HTTP so
+// local dev/test workflows keep working.
+const tlsKeyPath = process.env.TLS_KEY_PATH || path.resolve(__dirname, "./artifacts/cert/server.key");
+const tlsCertPath = process.env.TLS_CERT_PATH || path.resolve(__dirname, "./artifacts/cert/server.crt");
+
+function loadHttpsOptions() {
+    if (!fs.existsSync(tlsKeyPath) || !fs.existsSync(tlsCertPath)) {
+        return null;
+    }
+    try {
+        return {
+            key: fs.readFileSync(tlsKeyPath),
+            cert: fs.readFileSync(tlsCertPath)
+        };
+    } catch (err) {
+        console.log("Warning: unable to read TLS key/cert material, falling back to HTTP");
+        console.log(err.message);
+        return null;
+    }
+}
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -145,17 +164,27 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Fix for A6-Sensitive Data Exposure / CWE-319 (Cleartext Transmission)
+    // Use secure HTTPS when valid TLS key/cert material is configured and
+    // available; otherwise fall back to plain HTTP so local dev/test setups
+    // (which have no real certificate provisioned) keep working unchanged.
+    const httpsOptions = loadHttpsOptions();
+    if (httpsOptions) {
+        try {
+            https.createServer(httpsOptions, app).listen(port, () => {
+                console.log(`Express https server listening on port ${port}`);
+            });
+        } catch (err) {
+            console.log("Warning: failed to start HTTPS server, falling back to HTTP");
+            console.log(err.message);
+            http.createServer(app).listen(port, () => {
+                console.log(`Express http server listening on port ${port}`);
+            });
+        }
+    } else {
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
