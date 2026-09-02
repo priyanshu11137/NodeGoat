@@ -13,5 +13,20 @@ services:
   mongo:
     image: mongo:4.4
     user: mongodb
+    read_only: true
+    security_opt:
+      # Block privilege escalation through setuid/setgid binaries in the image.
+      - no-new-privileges:true
     expose:
       - 27017
+    volumes:
+      # mongod needs these writable; the rest of the root filesystem stays read-only.
+      - mongo-data:/data/db
+      - mongo-configdb:/data/configdb
+    tmpfs:
+      # mongod unix socket (/tmp/mongodb-27017.sock) and entrypoint temp files.
+      - /tmp
+
+volumes:
+  mongo-data:
+  mongo-configdb:
