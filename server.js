@@ -18,32 +18,18 @@ const { port, db, cookieSecret } = require("./config/config"); // Application co
 // Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
 // Load keys for establishing secure HTTPS connection.
 // NOTE: no private key/cert material is committed to this repo. Provide your
-// own locally-generated, gitignored key/cert pair and point TLS_KEY_PATH /
-// TLS_CERT_PATH at them (see artifacts/cert/server.key for how to generate
-// one for local/dev use). Do not commit real key material.
+// own locally-generated key/cert pair at the fixed path below (see
+// artifacts/cert/server.key for how to generate one for local/dev use). Do
+// not commit real key material.
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-// Fix for CWE-22 Path Traversal: restrict TLS_KEY_PATH / TLS_CERT_PATH to
-// resolve within an allowed base directory instead of accepting arbitrary
-// absolute paths anywhere on the filesystem.
-const tlsCertBaseDir = path.resolve(process.env.TLS_CERT_DIR || path.join(__dirname, "artifacts/cert"));
-
-const resolveTlsPath = (envVarValue) => {
-    if (!envVarValue) {
-        return null;
-    }
-    const resolved = path.resolve(tlsCertBaseDir, envVarValue);
-    const relative = path.relative(tlsCertBaseDir, resolved);
-    if (relative.startsWith("..") || path.isAbsolute(relative)) {
-        return null; // escapes the allowed base directory
-    }
-    return resolved;
-};
-
-const tlsKeyPath = resolveTlsPath(process.env.TLS_KEY_PATH);
-const tlsCertPath = resolveTlsPath(process.env.TLS_CERT_PATH);
-const httpsOptions = tlsKeyPath && tlsCertPath && fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath) ? {
+// Fix for CWE-22 Path Traversal: load TLS key/cert material from a fixed,
+// hardcoded path instead of an env-var-controlled path. No user/env-
+// controlled input reaches the filesystem here.
+const tlsKeyPath = path.resolve(__dirname, "artifacts/cert/server.key");
+const tlsCertPath = path.resolve(__dirname, "artifacts/cert/server.crt");
+const httpsOptions = fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath) ? {
     key: fs.readFileSync(tlsKeyPath),
     cert: fs.readFileSync(tlsCertPath)
 } : null;
@@ -135,11 +121,12 @@ MongoClient.connect(db, (err, db) => {
             httpOnly: true,
             // Fix for CWE-522 - Insufficiently Protected Credentials
             // Only mark the cookie Secure when the server is actually
-            // serving over HTTPS (TLS_KEY_PATH/TLS_CERT_PATH configured
-            // and loaded into httpsOptions above). Hardcoding `true`
-            // would stop browsers from sending the cookie back over the
-            // plain-HTTP fallback used in dev/test/CI, breaking
-            // login/session for every environment without real certs.
+            // serving over HTTPS (TLS key/cert material found at the
+            // fixed artifacts/cert path and loaded into httpsOptions
+            // above). Hardcoding `true` would stop browsers from sending
+            // the cookie back over the plain-HTTP fallback used in
+            // dev/test/CI, breaking login/session for every environment
+            // without real certs.
             secure: Boolean(httpsOptions)
         }
     }));
@@ -183,16 +170,16 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
-    // Use secure HTTPS protocol when TLS material is configured via
-    // TLS_KEY_PATH / TLS_CERT_PATH. Fall back to plain HTTP (with a
-    // warning) so existing dev/test/CI workflows that don't provide certs
-    // keep working unchanged.
+    // Use secure HTTPS protocol when TLS material is present at the fixed
+    // artifacts/cert/server.key + server.crt path. Fall back to plain HTTP
+    // (with a warning) so existing dev/test/CI workflows that don't
+    // provide certs keep working unchanged.
     if (httpsOptions) {
         https.createServer(httpsOptions, app).listen(port, () => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        console.warn("TLS_KEY_PATH/TLS_CERT_PATH not configured; falling back to insecure HTTP. Do not use this in production.");
+        console.warn("TLS key/cert material not found at artifacts/cert/; falling back to insecure HTTP. Do not use this in production.");
         http.createServer(app).listen(port, () => {
             console.log(`Express http server listening on port ${port}`);
         });
