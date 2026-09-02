@@ -123,10 +123,15 @@ MongoClient.connect(db, (err, db) => {
         // express-session idiom: it emits Expires/Max-Age relative to each
         // response instead of a fixed date baked in at boot) so sessions do not
         // live indefinitely. Tunable via SESSION_TIMEOUT_MS, default 30 minutes.
+        // Fix for A3 - XSS
+        // Mark the session cookie "httpOnly" so browser scripts cannot read it
+        // via document.cookie, which keeps an XSS payload from stealing the
+        // session id. No client-side script reads "sessionId".
         cookie: {
             domain: cookieDomain,
             path: "/",
-            maxAge: sessionTimeoutMs
+            maxAge: sessionTimeoutMs,
+            httpOnly: true
         }
 
         /*
