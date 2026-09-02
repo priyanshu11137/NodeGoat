@@ -14,7 +14,8 @@ const { db } = require("../config/config");
 // The local development fallbacks are the throwaway demo accounts documented
 // in README.md, following the same `process.env.X || default` style used by
 // config/env/all.js. Override them in any shared environment.
-const seedPassword = (envVar, devDefault) => process.env[envVar] || devDefault;
+// Each variable is read as a static property so no dynamic (bracket) lookup is
+// performed on `process.env`.
 
 // Fix for A2-1 Broken Auth: once password hashing is enabled in
 // app/data/user-dao.js, hash the value below at seed time with
@@ -26,7 +27,7 @@ const USERS_TO_INSERT = [
         "userName": "admin",
         "firstName": "Node Goat",
         "lastName": "Admin",
-        "password": seedPassword("SEED_ADMIN_PASSWORD", "Admin_123"),
+        "password": process.env.SEED_ADMIN_PASSWORD || "Admin_123",
         "isAdmin": true
     }, {
         "_id": 2,
@@ -34,14 +35,14 @@ const USERS_TO_INSERT = [
         "firstName": "John",
         "lastName": "Doe",
         "benefitStartDate": "2030-01-10",
-        "password": seedPassword("SEED_USER1_PASSWORD", "User1_123")
+        "password": process.env.SEED_USER1_PASSWORD || "User1_123"
     }, {
         "_id": 3,
         "userName": "user2",
         "firstName": "Will",
         "lastName": "Smith",
         "benefitStartDate": "2025-11-30",
-        "password": seedPassword("SEED_USER2_PASSWORD", "User2_123")
+        "password": process.env.SEED_USER2_PASSWORD || "User2_123"
     }];
 
 const tryDropCollection = (db, name) => {
