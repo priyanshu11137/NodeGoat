@@ -88,7 +88,7 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
+        resave: true,
         /*
         // Fix for A5 - Security MisConfig
         // Use generic cookie name
@@ -105,6 +105,14 @@ MongoClient.connect(db, (err, db) => {
         }
         */
 
+        // Fix for CWE-522 - Insufficiently Protected Credentials
+        // Scope the session cookie to a specific host via COOKIE_DOMAIN.
+        // Left undefined (and therefore omitted by the `cookie` module) when
+        // the env var isn't set, so dev/test environments with varying
+        // hostnames aren't broken.
+        cookie: {
+            domain: process.env.COOKIE_DOMAIN || undefined
+        }
     }));
 
     /*
