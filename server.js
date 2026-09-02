@@ -11,6 +11,7 @@ const swig = require("swig");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const http = require("http");
 const https = require("https");
+const tls = require("tls");
 const fs = require("fs");
 const path = require("path");
 const marked = require("marked");
@@ -36,12 +37,27 @@ function loadHttpsOptions() {
         return null;
     }
     try {
-        return {
+        const options = {
             key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
             cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
         };
+        // Bug fix: a file that exists and is readable is not necessarily usable
+        // TLS key/cert material (e.g. a placeholder left behind after removing a
+        // real secret from source control -- see artifacts/cert/server.key).
+        // Validate the material actually parses as a usable TLS context up front
+        // so `isHttps` (which drives the session cookie's `Secure` flag below)
+        // accurately reflects whether this process will really end up serving
+        // HTTPS. Without this check, a placeholder/invalid key made `isHttps`
+        // true -- forcing `Secure: true` on the session cookie -- while the
+        // actual `https.createServer()` call further down failed at listen time
+        // and silently fell back to plain HTTP; browsers then refused to send
+        // the Secure-only cookie back over HTTP, breaking session persistence
+        // and CSRF token validation (the session-bound CSRF secret never made
+        // it back to the server).
+        tls.createSecureContext(options);
+        return options;
     } catch (err) {
-        console.log("Warning: unable to read TLS key/cert material, falling back to HTTP");
+        console.log("Warning: unable to read/use TLS key/cert material, falling back to HTTP");
         console.log(err.message);
         return null;
     }
