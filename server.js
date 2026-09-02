@@ -93,16 +93,6 @@ MongoClient.connect(db, (err, db) => {
         // framework in use to attackers.
         name: "sessionId",
 
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
-        cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
-        }
-        */
-
         // Fix for CWE-522 - Insufficiently Protected Credentials
         // Scope the session cookie to a specific host via COOKIE_DOMAIN.
         // Left undefined (and therefore omitted by the `cookie` module) when
@@ -121,7 +111,11 @@ MongoClient.connect(db, (err, db) => {
             // of leaving it as a browser-session-only cookie with no
             // expiration. express-session derives/updates the `Expires`
             // attribute from `maxAge` on each response.
-            maxAge: 30 * 60 * 1000 // 30 minutes
+            maxAge: 30 * 60 * 1000, // 30 minutes
+            // Fix for A3 - XSS / CWE-522
+            // Prevent client-side JavaScript from reading the session
+            // cookie, mitigating cookie theft via XSS.
+            httpOnly: true
         }
     }));
 
