@@ -66,10 +66,40 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
+    // Allow-list of external hosts the learning resources link may point to (https only)
+    const allowedRedirectHosts = ["www.khanacademy.org"];
+    // Safe local destination used whenever the requested url is not allow-listed
+    const defaultRedirect = "/dashboard";
+    // Base used to resolve relative targets; only the path is ever reused from it
+    const localBase = "http://localhost";
+
+    // Validate a user supplied redirect target against the allow-list.
+    // Returns either a local path (same origin) or an allow-listed absolute
+    // https url. Protocol relative ("//evil.tld"), backslash and absolute
+    // off-site urls resolve to a foreign origin and are rejected.
+    const resolveRedirectTarget = (requestedUrl) => {
+        if (typeof requestedUrl !== "string" || requestedUrl.trim() === "") {
+            return defaultRedirect;
+        }
+        let parsed;
+        try {
+            parsed = new URL(requestedUrl.trim(), localBase);
+        } catch (err) {
+            return defaultRedirect;
+        }
+        if (parsed.origin === localBase) {
+            return parsed.pathname + parsed.search + parsed.hash;
+        }
+        if (parsed.protocol === "https:" && allowedRedirectHosts.indexOf(parsed.host) !== -1) {
+            return parsed.href;
+        }
+        return defaultRedirect;
+    };
+
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        // Only redirect to allow-listed destinations, never to raw query string input
+        return res.redirect(resolveRedirectTarget(req.query.url));
     });
 
     // Research Page
