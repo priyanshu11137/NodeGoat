@@ -109,7 +109,13 @@ MongoClient.connect(db, (err, db) => {
         // the env var isn't set, so dev/test environments with varying
         // hostnames aren't broken.
         cookie: {
-            domain: process.env.COOKIE_DOMAIN || undefined
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Explicitly scope the session cookie to all paths under this
+            // app (login, dashboard, profile, etc. live at different
+            // top-level paths), making the default intentional rather
+            // than left unset.
+            path: "/"
         }
     }));
 
