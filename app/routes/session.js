@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
@@ -135,6 +136,19 @@ function SessionHandler(db) {
         });
     };
 
+    // Compares security sensitive values (i.e: passwords) in constant time so that
+    // no information is leaked through an observable timing discrepancy.
+    // Both values are digested first, which keeps the compared buffers the same
+    // length and avoids an early length based short-circuit.
+    const constantTimeEquals = (left, right) => {
+        const digest = (value) => crypto
+            .createHash("sha256")
+            .update(`${typeof value}:${String(value)}`, "utf8")
+            .digest();
+
+        return crypto.timingSafeEqual(digest(left), digest(right));
+    };
+
     const validateSignup = (userName, firstName, lastName, password, verify, email, errors) => {
 
         const USER_RE = /^.{1,20}$/;
@@ -173,7 +187,7 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        if (password !== verify) {
+        if (!constantTimeEquals(password, verify)) {
             errors.verifyError = "Password must match";
             return false;
         }
