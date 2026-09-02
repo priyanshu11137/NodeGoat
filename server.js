@@ -110,7 +110,10 @@ MongoClient.connect(db, (err, db) => {
             // Explicitly set the cookie domain (configurable via COOKIE_DOMAIN env var) instead of
             // relying on the implicit browser default. Left undefined when unset, so behavior
             // is unchanged in local/dev environments without a fixed domain.
-            domain: cookieDomain
+            domain: cookieDomain,
+            // Fix for javascript.express.security.audit.express-cookie-settings.express-cookie-session-no-path
+            // Explicitly set the cookie path so its scope is not left to the implicit default.
+            path: "/"
             /*
             // Fix for A3 - XSS
             // TODO: Add "maxAge"
