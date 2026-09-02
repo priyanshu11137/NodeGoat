@@ -35,14 +35,34 @@ const {
 // and set HTTPS_KEY_PATH / HTTPS_CERT_PATH (see config/env/all.js).
 // When no readable TLS material is configured we keep serving plain HTTP so
 // local runs, docker-compose and CI can still boot the app.
+// Fix for A1/CWE-22 - Path Traversal
+// HTTPS_KEY_PATH / HTTPS_CERT_PATH are operator supplied, so the path is never
+// handed to "fs" as configured: it is canonicalized (realpath resolves "..",
+// relative segments and symlinks) and then confined to this allowed base
+// directory. A hostile value such as "../../etc/shadow", a symlink pointing
+// out of the tree, or an absolute path outside the app is rejected instead of
+// being read. The rejection is thrown so it flows through the existing catch
+// below, keeping the "return null -> plain HTTP fallback" contract intact.
+const tlsMaterialRoot = path.resolve(__dirname);
+
+const resolveTlsMaterialPath = (configuredPath) => {
+    const canonicalPath = fs.realpathSync(path.resolve(tlsMaterialRoot, configuredPath));
+    if (!canonicalPath.startsWith(`${tlsMaterialRoot}${path.sep}`)) {
+        const err = new Error(`TLS material path escapes ${tlsMaterialRoot}`);
+        err.code = "ERR_TLS_PATH_OUTSIDE_APP_DIR";
+        throw err;
+    }
+    return canonicalPath;
+};
+
 const loadHttpsOptions = () => {
     if (!httpsKeyPath || !httpsCertPath) {
         return null;
     }
     try {
         return {
-            key: fs.readFileSync(path.resolve(__dirname, httpsKeyPath)),
-            cert: fs.readFileSync(path.resolve(__dirname, httpsCertPath))
+            key: fs.readFileSync(resolveTlsMaterialPath(httpsKeyPath)),
+            cert: fs.readFileSync(resolveTlsMaterialPath(httpsCertPath))
         };
     } catch (err) {
         console.log(`TLS key/cert not available (${err.code}), starting without TLS`);
