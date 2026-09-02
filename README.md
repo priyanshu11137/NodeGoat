@@ -85,11 +85,13 @@ By default the application will be hosted on port 4000 and will connect to a Mon
 
 Other settings can be changed by updating the [config file](https://github.com/OWASP/NodeGoat/blob/master/config/env/all.js).
 
-No TLS private key is shipped with this repository. If you enable the HTTPS server (the A6 fix in `server.js`), generate your own
-key/cert locally and point the environment variables `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` at them, for example:
+No TLS private key is shipped with this repository. To serve HTTPS (the A6 fix in `server.js`), generate your own
+key/cert locally into the fixed location `artifacts/cert/server.key` / `artifacts/cert/server.crt`, for example:
 ```
 openssl req -x509 -newkey rsa:4096 -nodes -days 365 -keyout artifacts/cert/server.key -out artifacts/cert/server.crt
 ```
+The location is hard-coded on purpose (no configurable path is used to build a filesystem path). Set `HTTPS_ENABLED=false` to
+force the plain HTTP listener; when the key/cert are missing the app also falls back to HTTP automatically.
 
 ### OPTION 2 - Run NodeGoat on Docker
 

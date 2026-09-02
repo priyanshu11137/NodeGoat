@@ -2,12 +2,17 @@
 const port = process.env.PORT || 4000;
 let db = process.env.MONGODB_URI || "mongodb://localhost:27017/nodegoat";
 
-// TLS key/cert are never committed: generate your own locally and (optionally)
-// point these at them, e.g.
+// Whether the app should try to serve HTTPS. The TLS key/cert location is a
+// fixed literal path inside server.js (artifacts/cert/server.key and
+// server.crt) so that no configured string is ever used to build a filesystem
+// path. The key is never committed: generate your own locally, e.g.
 // openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
 //   -keyout artifacts/cert/server.key -out artifacts/cert/server.crt
-const httpsKeyPath = process.env.HTTPS_KEY_PATH || "artifacts/cert/server.key";
-const httpsCertPath = process.env.HTTPS_CERT_PATH || "artifacts/cert/server.crt";
+// Set HTTPS_ENABLED=false to force the plain HTTP listener even when TLS
+// material is present. When enabled but the key/cert are missing or
+// unreadable, server.js falls back to HTTP so the app still starts.
+const httpsEnabled = typeof process.env.HTTPS_ENABLED === "string" ?
+    process.env.HTTPS_ENABLED === "true" : true;
 
 // Domain the session cookie is scoped to. Set COOKIE_DOMAIN per deployment so
 // the cookie is only sent back to that domain. When it is not configured the
@@ -25,7 +30,7 @@ const sessionTimeoutMs = parseInt(process.env.SESSION_TIMEOUT_MS, 10) || 30 * 60
 // Whether the session cookie carries the "secure" attribute, i.e. the browser
 // only sends it back over HTTPS. Leave COOKIE_SECURE unset (the default) to
 // follow the transport the app actually serves: server.js enables it when the
-// configured TLS key/cert are loaded and leaves it off for the plain HTTP
+// TLS key/cert are loaded and leaves it off for the plain HTTP
 // fallback, so the flag and the listener can never disagree. Set
 // COOKIE_SECURE=true when TLS is terminated in front of the app (proxy/LB).
 const cookieSecure = typeof process.env.COOKIE_SECURE === "string" ?
@@ -34,8 +39,7 @@ const cookieSecure = typeof process.env.COOKIE_SECURE === "string" ?
 module.exports = {
     port,
     db,
-    httpsKeyPath,
-    httpsCertPath,
+    httpsEnabled,
     cookieDomain,
     cookieSecure,
     sessionTimeoutMs,

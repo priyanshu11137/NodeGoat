@@ -12,7 +12,6 @@ const MongoClient = require("mongodb").MongoClient; // Driver for connecting to 
 const http = require("http");
 const https = require("https");
 const fs = require("fs");
-const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -25,44 +24,34 @@ const {
     cookieDomain,
     cookieSecure,
     sessionTimeoutMs,
-    httpsKeyPath,
-    httpsCertPath
+    httpsEnabled
 } = require("./config/config");
 
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing a secure HTTPS connection.
 // The private key is NOT stored in this repository: generate your own key/cert
-// and set HTTPS_KEY_PATH / HTTPS_CERT_PATH (see config/env/all.js).
-// When no readable TLS material is configured we keep serving plain HTTP so
-// local runs, docker-compose and CI can still boot the app.
+// into the fixed location below (see README), e.g.
+//   openssl req -x509 -newkey rsa:4096 -nodes -days 365 \
+//     -keyout artifacts/cert/server.key -out artifacts/cert/server.crt
+// When no readable TLS material is present we keep serving plain HTTP so local
+// runs, docker-compose and CI can still boot the app.
 // Fix for A1/CWE-22 - Path Traversal
-// HTTPS_KEY_PATH / HTTPS_CERT_PATH are operator supplied, so the path is never
-// handed to "fs" as configured: it is canonicalized (realpath resolves "..",
-// relative segments and symlinks) and then confined to this allowed base
-// directory. A hostile value such as "../../etc/shadow", a symlink pointing
-// out of the tree, or an absolute path outside the app is rejected instead of
-// being read. The rejection is thrown so it flows through the existing catch
-// below, keeping the "return null -> plain HTTP fallback" contract intact.
-const tlsMaterialRoot = path.resolve(__dirname);
-
-const resolveTlsMaterialPath = (configuredPath) => {
-    const canonicalPath = fs.realpathSync(path.resolve(tlsMaterialRoot, configuredPath));
-    if (!canonicalPath.startsWith(`${tlsMaterialRoot}${path.sep}`)) {
-        const err = new Error(`TLS material path escapes ${tlsMaterialRoot}`);
-        err.code = "ERR_TLS_PATH_OUTSIDE_APP_DIR";
-        throw err;
-    }
-    return canonicalPath;
-};
+// The TLS material is read from these two hard-coded literal paths. No value
+// from the environment or from the application config takes part in building
+// them, so no externally supplied string ever reaches "fs" and there is
+// nothing to traverse. TLS is turned on/off with the HTTPS_ENABLED boolean
+// (see config/env/all.js) instead of an operator supplied path string.
+const HTTPS_KEY_FILE = "./artifacts/cert/server.key";
+const HTTPS_CERT_FILE = "./artifacts/cert/server.crt";
 
 const loadHttpsOptions = () => {
-    if (!httpsKeyPath || !httpsCertPath) {
+    if (!httpsEnabled) {
         return null;
     }
     try {
         return {
-            key: fs.readFileSync(resolveTlsMaterialPath(httpsKeyPath)),
-            cert: fs.readFileSync(resolveTlsMaterialPath(httpsCertPath))
+            key: fs.readFileSync(HTTPS_KEY_FILE),
+            cert: fs.readFileSync(HTTPS_CERT_FILE)
         };
     } catch (err) {
         console.log(`TLS key/cert not available (${err.code}), starting without TLS`);
