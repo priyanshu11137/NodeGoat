@@ -105,8 +105,14 @@ MongoClient.connect(db, (err, db) => {
         // Restrict which domain the session cookie is sent to. Configured via
         // COOKIE_DOMAIN (see config/env/all.js); when unset it stays undefined
         // so the browser keeps a host-only cookie and local runs still work.
+        // Fix for A5 - Security MisConfig
+        // Scope the session cookie to an explicit path instead of relying on the
+        // default. Authenticated pages are served from the site root (/dashboard,
+        // /profile, /benefits, /memos, /contributions, /learn), so "/" is the
+        // narrowest path that still covers every existing route.
         cookie: {
-            domain: cookieDomain
+            domain: cookieDomain,
+            path: "/"
         }
 
         /*
