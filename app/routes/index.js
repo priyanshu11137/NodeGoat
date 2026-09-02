@@ -1,3 +1,4 @@
+const { URL } = require("url");
 const SessionHandler = require("./session");
 const ProfileHandler = require("./profile");
 const BenefitsHandler = require("./benefits");
@@ -19,6 +20,38 @@ const index = (app, db) => {
     const allocationsHandler = new AllocationsHandler(db);
     const memosHandler = new MemosHandler(db);
     const researchHandler = new ResearchHandler(db);
+
+    // Allowlist of hosts that the /learn redirect is permitted to send users to
+    const ALLOWED_REDIRECT_HOSTS = ["www.khanacademy.org", "khanacademy.org"];
+
+    // Validates that the supplied redirect target is either a safe in-app
+    // relative path, or a well-formed absolute URL pointing at one of the
+    // allowlisted hosts, to prevent open redirect (CWE-601). Naive prefix
+    // checks (e.g. startsWith) are avoided since they can be bypassed with
+    // URLs like "https://evil.com/https://khanacademy.org". Protocol-relative
+    // paths (e.g. "//evil.com") are rejected since browsers treat them as
+    // absolute URLs.
+    const isAllowedRedirectUrl = (candidateUrl) => {
+        if (!candidateUrl || typeof candidateUrl !== "string") {
+            return false;
+        }
+
+        // Safe in-app relative path (single leading slash, not protocol-relative)
+        if (candidateUrl.startsWith("/") && !candidateUrl.startsWith("//")) {
+            return true;
+        }
+
+        let parsed;
+        try {
+            parsed = new URL(candidateUrl);
+        } catch (err) {
+            return false;
+        }
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+            return false;
+        }
+        return ALLOWED_REDIRECT_HOSTS.includes(parsed.hostname);
+    };
 
     // Middleware to check if a user is logged in
     const isLoggedIn = sessionHandler.isLoggedInMiddleware;
@@ -68,8 +101,13 @@ const index = (app, db) => {
 
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        // Secure redirect handling: only allow redirecting to an allowlisted
+        // host (Khan Academy) to prevent open redirect (CWE-601).
+        const requestedUrl = req.query.url;
+        if (!isAllowedRedirectUrl(requestedUrl)) {
+            return res.status(400).send("Invalid or disallowed redirect URL");
+        }
+        return res.redirect(requestedUrl);
     });
 
     // Research Page
