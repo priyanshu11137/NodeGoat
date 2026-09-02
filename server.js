@@ -17,13 +17,16 @@ const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 /*
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
+// Load keys for establishing secure HTTPS connection.
+// The private key is NOT stored in this repository: generate your own key/cert
+// and set HTTPS_KEY_PATH / HTTPS_CERT_PATH (see config/env/all.js).
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
+const { httpsKeyPath, httpsCertPath } = require("./config/config");
 const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+    key: fs.readFileSync(path.resolve(__dirname, httpsKeyPath)),
+    cert: fs.readFileSync(path.resolve(__dirname, httpsCertPath))
 };
 */
 
