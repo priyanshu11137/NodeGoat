@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -126,16 +126,22 @@ MongoClient.connect(db, (err, db) => {
 
     }));
 
-    /*
-    // Fix for A8 - CSRF
-    // Enable Express csrf protection
+    // Fix for A8 - CSRF / CWE-352
+    // Enable Express csrf protection. Mounted after the session and body
+    // parsers (both are required to store the secret and to read the token out
+    // of a form post) so every state-changing request (POST/PUT/PATCH/DELETE)
+    // must present a token bound to the caller's own session. A third party
+    // cannot read that token, so it can no longer make the browser submit a
+    // forged, silently authenticated request. Safe methods (GET/HEAD/OPTIONS)
+    // are not challenged, so navigation, static assets and the tutorial pages
+    // keep working unchanged.
     app.use(csrf());
-    // Make csrf token available in templates
+    // Make csrf token available in templates, so every form can render it in
+    // its hidden "_csrf" field - the field csurf validates on submit.
     app.use((req, res, next) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
