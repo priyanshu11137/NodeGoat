@@ -115,7 +115,13 @@ MongoClient.connect(db, (err, db) => {
             // app (login, dashboard, profile, etc. live at different
             // top-level paths), making the default intentional rather
             // than left unset.
-            path: "/"
+            path: "/",
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Give the session cookie a defined, bounded lifetime instead
+            // of leaving it as a browser-session-only cookie with no
+            // expiration. express-session derives/updates the `Expires`
+            // attribute from `maxAge` on each response.
+            maxAge: 30 * 60 * 1000 // 30 minutes
         }
     }));
 
