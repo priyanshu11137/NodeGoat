@@ -4,7 +4,7 @@ const express = require("express");
 const favicon = require("serve-favicon");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const csrf = require('csurf');
+const csrf = require("csurf");
 const consolidate = require("consolidate"); // Templating library adapter for Express
 const swig = require("swig");
 // const helmet = require("helmet");
@@ -15,17 +15,24 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
+// Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
+// Load keys for establishing secure HTTPS connection.
+// NOTE: no private key/cert material is committed to this repo. Provide your
+// own locally-generated key/cert pair at the fixed path below (see
+// artifacts/cert/server.key for how to generate one for local/dev use). Do
+// not commit real key material.
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
-*/
+// Fix for CWE-22 Path Traversal: load TLS key/cert material from a fixed,
+// hardcoded path instead of an env-var-controlled path. No user/env-
+// controlled input reaches the filesystem here.
+const tlsKeyPath = path.resolve(__dirname, "artifacts/cert/server.key");
+const tlsCertPath = path.resolve(__dirname, "artifacts/cert/server.crt");
+const httpsOptions = fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath) ? {
+    key: fs.readFileSync(tlsKeyPath),
+    cert: fs.readFileSync(tlsCertPath)
+} : null;
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -82,26 +89,48 @@ MongoClient.connect(db, (err, db) => {
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
-        resave: true
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
+        resave: true,
+        // Fix for A5 - Security MisConfig / CWE-522
+        // Use a generic, non-fingerprintable cookie name instead of the
+        // express-session default ("connect.sid"), which leaks the
+        // framework in use to attackers.
+        name: "sessionId",
 
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        // Fix for CWE-522 - Insufficiently Protected Credentials
+        // Scope the session cookie to a specific host via COOKIE_DOMAIN.
+        // Left undefined (and therefore omitted by the `cookie` module) when
+        // the env var isn't set, so dev/test environments with varying
+        // hostnames aren't broken.
         cookie: {
-            httpOnly: true
-            // Remember to start an HTTPS server to get this working
-            // secure: true
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Explicitly scope the session cookie to all paths under this
+            // app (login, dashboard, profile, etc. live at different
+            // top-level paths), making the default intentional rather
+            // than left unset.
+            path: "/",
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Give the session cookie a defined, bounded lifetime instead
+            // of leaving it as a browser-session-only cookie with no
+            // expiration. express-session derives/updates the `Expires`
+            // attribute from `maxAge` on each response.
+            maxAge: 30 * 60 * 1000, // 30 minutes
+            // Fix for A3 - XSS / CWE-522
+            // Prevent client-side JavaScript from reading the session
+            // cookie, mitigating cookie theft via XSS.
+            httpOnly: true,
+            // Fix for CWE-522 - Insufficiently Protected Credentials
+            // Only mark the cookie Secure when the server is actually
+            // serving over HTTPS (TLS key/cert material found at the
+            // fixed artifacts/cert path and loaded into httpsOptions
+            // above). Hardcoding `true` would stop browsers from sending
+            // the cookie back over the plain-HTTP fallback used in
+            // dev/test/CI, breaking login/session for every environment
+            // without real certs.
+            secure: Boolean(httpsOptions)
         }
-        */
-
     }));
 
-    /*
     // Fix for A8 - CSRF
     // Enable Express csrf protection
     app.use(csrf());
@@ -110,7 +139,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -141,17 +169,20 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Fix for A6-Sensitive Data Exposure / CWE-319 Cleartext Transmission
+    // Use secure HTTPS protocol when TLS material is present at the fixed
+    // artifacts/cert/server.key + server.crt path. Fall back to plain HTTP
+    // (with a warning) so existing dev/test/CI workflows that don't
+    // provide certs keep working unchanged.
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.warn("TLS key/cert material not found at artifacts/cert/; falling back to insecure HTTP. Do not use this in production.");
+        http.createServer(app).listen(port, () => {
+            console.log(`Express http server listening on port ${port}`);
+        });
+    }
 
 });
