@@ -7,6 +7,7 @@ const MemosHandler = require("./memos");
 const ResearchHandler = require("./research");
 const tutorialRouter = require("./tutorial");
 const ErrorHandler = require("./error").errorHandler;
+const URL = require("url").URL;
 
 const index = (app, db) => {
 
@@ -67,9 +68,27 @@ const index = (app, db) => {
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
     // Handle redirect for learning resources link
+    // Only same-origin (relative) paths and explicitly allowlisted learning resource hosts may be used
+    const learnAllowedHosts = ["www.khanacademy.org"];
+    const learnFallbackUrl = "/dashboard";
+    const resolveLearnRedirect = (target) => {
+        if (typeof target !== "string" || target.length === 0) return null;
+        let parsed;
+        try {
+            // Parsing against a placeholder base normalizes protocol-relative, backslash and encoded forms
+            parsed = new URL(target, "http://localhost");
+        } catch (parseError) {
+            return null;
+        }
+        // A relative path keeps the placeholder host, so send it back as a path on this app only
+        if (parsed.hostname === "localhost") return parsed.pathname + parsed.search + parsed.hash;
+        if (parsed.protocol === "https:" && learnAllowedHosts.indexOf(parsed.hostname) !== -1) return parsed.href;
+        return null;
+    };
+
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        // Validate the redirect target from the query string before handing it to the browser
+        return res.redirect(resolveLearnRedirect(req.query.url) || learnFallbackUrl);
     });
 
     // Research Page
