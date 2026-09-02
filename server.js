@@ -18,7 +18,15 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 // Application config properties
-const { port, db, cookieSecret, cookieDomain, httpsKeyPath, httpsCertPath } = require("./config/config");
+const {
+    port,
+    db,
+    cookieSecret,
+    cookieDomain,
+    sessionTimeoutMs,
+    httpsKeyPath,
+    httpsCertPath
+} = require("./config/config");
 
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing a secure HTTPS connection.
@@ -110,9 +118,15 @@ MongoClient.connect(db, (err, db) => {
         // default. Authenticated pages are served from the site root (/dashboard,
         // /profile, /benefits, /memos, /contributions, /learn), so "/" is the
         // narrowest path that still covers every existing route.
+        // Fix for A2 - Broken Authentication and Session Management
+        // Give the session cookie a bounded expiry ("maxAge" is the
+        // express-session idiom: it emits Expires/Max-Age relative to each
+        // response instead of a fixed date baked in at boot) so sessions do not
+        // live indefinitely. Tunable via SESSION_TIMEOUT_MS, default 30 minutes.
         cookie: {
             domain: cookieDomain,
-            path: "/"
+            path: "/",
+            maxAge: sessionTimeoutMs
         }
 
         /*

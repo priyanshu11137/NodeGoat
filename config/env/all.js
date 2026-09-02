@@ -15,12 +15,20 @@ const httpsCertPath = process.env.HTTPS_CERT_PATH || "artifacts/cert/server.crt"
 // most restrictive scope) and keeps local/demo runs working.
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
+// Lifetime of the session cookie in milliseconds. Sessions must not live
+// indefinitely, so express-session gets a bounded expiry (it renders the
+// "Expires"/"Max-Age" cookie attributes from this value). Override per
+// deployment with SESSION_TIMEOUT_MS; the default is 30 minutes of idle time,
+// which is long enough for a normal browsing session (and the e2e suite).
+const sessionTimeoutMs = parseInt(process.env.SESSION_TIMEOUT_MS, 10) || 30 * 60 * 1000;
+
 module.exports = {
     port,
     db,
     httpsKeyPath,
     httpsCertPath,
     cookieDomain,
+    sessionTimeoutMs,
     cookieSecret: "session_cookie_secret_key_here",
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
