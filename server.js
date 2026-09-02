@@ -17,14 +17,20 @@ const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
 /*
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection
+// Load keys for establishing secure HTTPS connection.
+// NOTE: no private key/cert material is committed to this repo. Provide your
+// own locally-generated, gitignored key/cert pair and point TLS_KEY_PATH /
+// TLS_CERT_PATH at them (see artifacts/cert/server.key for how to generate
+// one for local/dev use). Do not commit real key material.
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const httpsOptions = {
-    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
-    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
-};
+const tlsKeyPath = process.env.TLS_KEY_PATH && path.resolve(process.env.TLS_KEY_PATH);
+const tlsCertPath = process.env.TLS_CERT_PATH && path.resolve(process.env.TLS_CERT_PATH);
+const httpsOptions = tlsKeyPath && tlsCertPath && fs.existsSync(tlsKeyPath) && fs.existsSync(tlsCertPath) ? {
+    key: fs.readFileSync(tlsKeyPath),
+    cert: fs.readFileSync(tlsCertPath)
+} : null;
 */
 
 MongoClient.connect(db, (err, db) => {
