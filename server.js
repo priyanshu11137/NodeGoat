@@ -17,7 +17,7 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
+const { port, db, cookieSecret, cookieDomain, cookieName } = require("./config/config"); // Application config properties
 // Fix for A6-Sensitive Data Exposure / CWE-319
 // Load keys for establishing a secure HTTPS connection.
 // Key material is never committed: supply it at runtime through the
@@ -96,6 +96,13 @@ MongoClient.connect(db, (err, db) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
         secret: cookieSecret,
+        // Fix for A5 - Security MisConfig / CWE-522
+        // Use a generic cookie name. The express-session default
+        // ("connect.sid") fingerprints the framework in every response, which
+        // helps an attacker pick stack-specific attacks. Nothing reads the
+        // cookie by name (the client just echoes it back), so renaming it is
+        // transparent to the app and to the e2e suite.
+        name: cookieName,
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true,
@@ -106,11 +113,6 @@ MongoClient.connect(db, (err, db) => {
             // keeps the cookie host-only so it is never shared with sub-domains.
             domain: cookieDomain
         }
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
 
         /*
         // Fix for A3 - XSS

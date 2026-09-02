@@ -11,6 +11,10 @@ module.exports = {
     // host-only, which is the narrowest scope and keeps local development
     // (localhost / 127.0.0.1) working.
     cookieDomain: process.env.COOKIE_DOMAIN || null,
+    // Explicit, generic name for the session cookie. The express-session default
+    // ("connect.sid") advertises the server stack to anyone inspecting the
+    // response. Override with COOKIE_NAME per environment if desired.
+    cookieName: process.env.COOKIE_NAME || "sessionId",
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
     hostName: "localhost",
