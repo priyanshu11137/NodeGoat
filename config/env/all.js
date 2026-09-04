@@ -15,12 +15,32 @@ const sessionTimeoutMinutes = Number.isInteger(configuredSessionTimeout) && conf
     configuredSessionTimeout :
     60;
 const sessionMaxAge = sessionTimeoutMinutes * 60 * 1000; // express-session expects milliseconds
+// Whether the session cookie must carry the "Secure" attribute, so the session
+// identifier can never travel in cleartext. Secure-on by default, and it fails
+// secure: production - and an unset NODE_ENV on a real host - stay on. It is
+// only dropped for an explicitly local run (NODE_ENV development/test, which is
+// what the e2e suite uses over http://localhost, or an unset NODE_ENV while the
+// app is served on a loopback host) or when COOKIE_SECURE is set to a false
+// value. Deployments terminating TLS at a proxy keep COOKIE_SECURE on and grant
+// Express "trust proxy" to that proxy only; a blanket trust would let any client
+// spoof X-Forwarded-Proto.
+const LOCAL_ENVIRONMENTS = ["development", "test"];
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
+const FALSE_VALUES = ["false", "0", "no", "off"];
+const nodeEnv = (process.env.NODE_ENV || "").trim().toLowerCase();
+const isLocalRuntime = LOCAL_ENVIRONMENTS.indexOf(nodeEnv) !== -1 ||
+    (!nodeEnv && LOOPBACK_HOSTS.indexOf(hostName.trim().toLowerCase()) !== -1);
+const configuredCookieSecure = (process.env.COOKIE_SECURE || "").trim().toLowerCase();
+const cookieSecure = configuredCookieSecure ?
+    FALSE_VALUES.indexOf(configuredCookieSecure) === -1 :
+    !isLocalRuntime;
 
 module.exports = {
     port,
     db,
     cookieSecret: "session_cookie_secret_key_here",
     cookieDomain,
+    cookieSecure,
     sessionMaxAge,
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",

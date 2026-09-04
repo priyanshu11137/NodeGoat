@@ -88,6 +88,14 @@ The seed script (`npm run db:seed`) reads the password of each default account f
 above; any other `NODE_ENV` must set them explicitly. Set `SEED_BCRYPT_PASSWORDS=true` to seed one way bcrypt hashes
 instead of plaintext (use it together with the A2 - Broken Authentication fix in `app/data/user-dao.js`).
 
+The session cookie is marked `Secure` by default, so it is only sent over HTTPS. That attribute is dropped automatically
+for local runs (`NODE_ENV` `development`/`test`, or when the app is served on a loopback host such as `localhost`) so the
+e2e suite and a local `npm start` keep working over plain HTTP. Any other deployment keeps it on, including when
+`NODE_ENV` is unset. Set `COOKIE_SECURE=false` to opt out explicitly, or `COOKIE_SECURE=true` to force it on for a local
+run served over TLS. If TLS is terminated by a reverse proxy, keep `COOKIE_SECURE=true` and grant Express
+[`trust proxy`](https://expressjs.com/en/guide/behind-proxies.html) to that proxy only - trusting every hop would let any
+client spoof `X-Forwarded-Proto`.
+
 Other settings can be changed by updating the [config file](https://github.com/OWASP/NodeGoat/blob/master/config/env/all.js).
 
 ### OPTION 2 - Run NodeGoat on Docker

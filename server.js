@@ -16,7 +16,8 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret, cookieDomain, sessionMaxAge } = require("./config/config"); // Application config
+// Application config
+const { port, db, cookieSecret, cookieDomain, cookieSecure, sessionMaxAge } = require("./config/config");
 
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing a secure HTTPS connection.
@@ -135,19 +136,15 @@ MongoClient.connect(db, (err, db) => {
             // client side script. Without "httpOnly" any injected JavaScript
             // can read document.cookie and hijack the session.
             httpOnly: true,
-            // Fix for A6 - Sensitive Data Exposure: never let the session
-            // identifier travel in cleartext. express-session honours the
-            // special value "auto" (since 1.11): the "Secure" attribute is set
-            // whenever the request is served over TLS (req.secure) and omitted
-            // on a plain HTTP connection, so the cookie is protected as soon as
-            // HTTPS_KEY_PATH/HTTPS_CERT_PATH are configured below without
-            // breaking a local/CI run over http://localhost - a hardcoded
-            // "true" there would make the browser drop the cookie and silently
-            // kill every login. When TLS is terminated by a proxy, configure
-            // Express "trust proxy" for that proxy only; it is deliberately not
-            // enabled here because a blanket trust would let any client spoof
-            // X-Forwarded-Proto.
-            secure: "auto",
+            // Fix for A6 - Sensitive Data Exposure: never send the session
+            // identifier in cleartext. Secure-on unless the run is explicitly
+            // local, see COOKIE_SECURE in config/env/all.js.
+            secure: cookieSecure,
+            // Fix for A8 - CSRF (defence in depth alongside csurf below): the
+            // app only posts its own forms, so the session cookie is not
+            // attached to cross-site requests. "lax" still keeps the session on
+            // ordinary inbound links.
+            sameSite: "lax",
             // Restrict the session cookie to the configured host so it is not
             // shared with sibling sub-domains
             domain: cookieDomain,
