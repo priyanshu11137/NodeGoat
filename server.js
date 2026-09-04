@@ -95,6 +95,10 @@ MongoClient.connect(db, (err, db) => {
         // genid: (req) => {
         //    return genuuid() // use UUIDs for session IDs
         //},
+        // Fix for A5 - Security MisConfig
+        // Use a generic session cookie name instead of the express-session
+        // default ("connect.sid"), which fingerprints the stack to attackers
+        name: "sessionId",
         secret: cookieSecret,
         // Both mandatory in Express v4
         saveUninitialized: true,
@@ -104,11 +108,6 @@ MongoClient.connect(db, (err, db) => {
             // shared with sibling sub-domains
             domain: cookieDomain
         }
-        /*
-        // Fix for A5 - Security MisConfig
-        // Use generic cookie name
-        key: "sessionId",
-        */
 
         /*
         // Fix for A3 - XSS
