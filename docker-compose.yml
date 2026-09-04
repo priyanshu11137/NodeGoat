@@ -12,7 +12,12 @@ services:
 
   mongo:
     image: mongo:4.4
+    # Runs as the image's non-root mongodb account, so the entrypoint skips its
+    # root-only chown/gosu branch and never needs a setuid step.
     user: mongodb
+    # Block privilege escalation via setuid/setgid binaries inside the container.
+    security_opt:
+      - no-new-privileges:true
     expose:
       - 27017
     # Container root filesystem is immutable; only the paths mongod actually
