@@ -28,53 +28,30 @@ const {
 } = require("./config/config");
 
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing a secure HTTPS connection.
-// TLS material is never committed: provide the paths through the
-// HTTPS_KEY_PATH / HTTPS_CERT_PATH environment variables and generate a local
-// development pair as described in artifacts/cert/README.md
+// Load keys for establishing a secure HTTPS connection. TLS material is never
+// committed: drop a locally generated "server.key"/"server.crt" pair into the
+// git-ignored artifacts/cert directory, see artifacts/cert/README.md
 //
-// Fix for A1 - Injection / CWE-22 Path Traversal: those two variables are
-// external input, so they are never handed to the filesystem as supplied.
-// Only files inside the dedicated TLS material directory may be read: each
-// candidate is resolved and then canonicalised with "fs.realpathSync" (which
-// also collapses symlinks) and the canonical result must still be located
-// under the canonical base directory. Traversal sequences ("../../etc/shadow"),
-// absolute paths outside the base and symlinks escaping it are rejected, and
-// the server keeps serving over plain HTTP instead of reading the file.
-const TLS_MATERIAL_DIR = path.join(__dirname, "artifacts", "cert");
+// Fix for A1 - Injection / CWE-22 Path Traversal: both locations are fixed
+// constants built from "__dirname" plus literal segments only. No external
+// input (environment, request, argv) takes part in the paths handed to "fs",
+// so there is nothing to sanitise and nothing to traverse with.
+const TLS_KEY_FILE = path.join(__dirname, "artifacts", "cert", "server.key");
+const TLS_CERT_FILE = path.join(__dirname, "artifacts", "cert", "server.crt");
 
-// Returns the canonical path of an existing file inside TLS_MATERIAL_DIR.
-// Throws when the file does not exist or escapes that directory.
-const resolveTlsMaterialPath = (configuredPath) => {
-    // Canonicalise the allow-listed directory first so both sides of the
-    // containment check below are real, symlink-free paths.
-    const baseDir = fs.realpathSync(TLS_MATERIAL_DIR);
-    const candidate = fs.realpathSync(path.resolve(__dirname, configuredPath));
-    const relative = path.relative(baseDir, candidate);
-    if (!relative || relative.split(path.sep).indexOf("..") !== -1 || path.isAbsolute(relative)) {
-        throw new Error(`path "${configuredPath}" is outside ${TLS_MATERIAL_DIR}`);
-    }
-    // Rebuild the accepted path from the validated components so the value
-    // handed to "readFileSync" can only ever be baseDir + a contained name.
-    return path.join(baseDir, relative);
-};
-
+// Returns HTTPS options when both files exist and are readable, else null so
+// the caller can fall back to the plain listener without start-up failing.
 const loadHttpsOptions = () => {
-    const keyPath = process.env.HTTPS_KEY_PATH;
-    const certPath = process.env.HTTPS_CERT_PATH;
-    if (!keyPath || !certPath) {
-        return null;
-    }
     try {
         return {
-            key: fs.readFileSync(resolveTlsMaterialPath(keyPath)),
-            cert: fs.readFileSync(resolveTlsMaterialPath(certPath)),
+            key: fs.readFileSync(TLS_KEY_FILE),
+            cert: fs.readFileSync(TLS_CERT_FILE),
             // Modern TLS defaults: refuse the obsolete SSLv3/TLS 1.0/1.1 protocols
             // instead of pinning a single (soon deprecated) version
             minVersion: "TLSv1.2"
         };
     } catch (err) {
-        console.log(`Error: TLS: cannot read the configured key/certificate (${err.code || err.message})`);
+        console.log(`TLS material unavailable in artifacts/cert (${err.code || err.message})`);
         return null;
     }
 };
@@ -247,9 +224,9 @@ MongoClient.connect(db, (err, db) => {
     });
 
     // Fix for A6-Sensitive Data Exposure
-    // Use the secure HTTPS protocol whenever key/certificate material has been
-    // configured. When it has not (fresh checkout, CI), fall back to the plain
-    // express listener so the app still starts - certificates are never
+    // Use the secure HTTPS protocol whenever key/certificate material is present
+    // in artifacts/cert. When it is not (fresh checkout, CI), fall back to the
+    // plain express listener so the app still starts - certificates are never
     // generated or committed here, see artifacts/cert/README.md
     const httpsOptions = loadHttpsOptions();
     if (httpsOptions) {
@@ -257,7 +234,7 @@ MongoClient.connect(db, (err, db) => {
             console.log(`Express https server listening on port ${port}`);
         });
     } else {
-        console.log("TLS is disabled: set HTTPS_KEY_PATH and HTTPS_CERT_PATH to serve over HTTPS " +
+        console.log("TLS is disabled: add artifacts/cert/server.key and server.crt to serve over HTTPS " +
             "(see artifacts/cert/README.md). Do not expose this listener outside localhost.");
         app.listen(port, () => {
             console.log(`Express server listening on port ${port} without TLS`);

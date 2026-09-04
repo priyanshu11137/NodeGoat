@@ -6,7 +6,8 @@ demo pair) has been removed, and `*.key` / `*.crt` / `*.pem` files are ignored
 by git.
 
 Generate your own local development pair when you want to run the HTTPS server
-described in the A6 - Sensitive Data Exposure tutorial:
+described in the A6 - Sensitive Data Exposure tutorial. The file names are
+fixed - `server.key` and `server.crt` inside this directory:
 
 ```
 openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
@@ -15,16 +16,13 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
   -subj "/CN=localhost"
 ```
 
-Then point the application at the generated files with environment variables,
-the same way `PORT` and `MONGODB_URI` are provided (see the README):
+That is all the configuration there is: `server.js` builds the two paths from
+its own directory plus those literal names, so there is no environment variable
+to set (the former `HTTPS_KEY_PATH` / `HTTPS_CERT_PATH` variables have been
+removed - accepting a path from the environment was a path traversal sink).
 
-```
-export HTTPS_KEY_PATH=artifacts/cert/server.key
-export HTTPS_CERT_PATH=artifacts/cert/server.crt
-```
-
-`server.js` reads those variables in the HTTPS section. Both paths must point
-inside this `artifacts/cert` directory: the application canonicalises them
-(symlinks included) and refuses anything that resolves outside it, then falls
-back to the plain HTTP listener. Keep the generated key readable only by your
-user, and never add it to a commit, image, or PR.
+When both files are present and readable the app starts an HTTPS listener with
+`minVersion: TLSv1.2`; otherwise it logs that TLS is disabled and falls back to
+the plain HTTP listener, so a checkout without certificates (CI, e2e tests)
+still starts. Keep the generated key readable only by your user, and never add
+it to a commit, image, or PR.
