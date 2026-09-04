@@ -9,25 +9,39 @@ const consolidate = require("consolidate"); // Templating library adapter for Ex
 const swig = require("swig");
 // const helmet = require("helmet");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
-const http = require("http");
+const fs = require("fs");
+const https = require("https");
+const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
-/*
+
 // Fix for A6-Sensitive Data Exposure
-// Load keys for establishing secure HTTPS connection.
+// Load keys for establishing a secure HTTPS connection.
 // TLS material is never committed: provide the paths through the
 // HTTPS_KEY_PATH / HTTPS_CERT_PATH environment variables and generate a local
 // development pair as described in artifacts/cert/README.md
-const fs = require("fs");
-const https = require("https");
-const httpsOptions = {
-    key: fs.readFileSync(process.env.HTTPS_KEY_PATH),
-    cert: fs.readFileSync(process.env.HTTPS_CERT_PATH)
+const loadHttpsOptions = () => {
+    const keyPath = process.env.HTTPS_KEY_PATH;
+    const certPath = process.env.HTTPS_CERT_PATH;
+    if (!keyPath || !certPath) {
+        return null;
+    }
+    try {
+        return {
+            key: fs.readFileSync(path.resolve(__dirname, keyPath)),
+            cert: fs.readFileSync(path.resolve(__dirname, certPath)),
+            // Modern TLS defaults: refuse the obsolete SSLv3/TLS 1.0/1.1 protocols
+            // instead of pinning a single (soon deprecated) version
+            minVersion: "TLSv1.2"
+        };
+    } catch (err) {
+        console.log(`Error: TLS: cannot read the configured key/certificate (${err.code})`);
+        return null;
+    }
 };
-*/
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -148,17 +162,22 @@ MongoClient.connect(db, (err, db) => {
         */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
     // Fix for A6-Sensitive Data Exposure
-    // Use secure HTTPS protocol
-    https.createServer(httpsOptions, app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-    */
+    // Use the secure HTTPS protocol whenever key/certificate material has been
+    // configured. When it has not (fresh checkout, CI), fall back to the plain
+    // express listener so the app still starts - certificates are never
+    // generated or committed here, see artifacts/cert/README.md
+    const httpsOptions = loadHttpsOptions();
+    if (httpsOptions) {
+        https.createServer(httpsOptions, app).listen(port, () => {
+            console.log(`Express https server listening on port ${port}`);
+        });
+    } else {
+        console.log("TLS is disabled: set HTTPS_KEY_PATH and HTTPS_CERT_PATH to serve over HTTPS " +
+            "(see artifacts/cert/README.md). Do not expose this listener outside localhost.");
+        app.listen(port, () => {
+            console.log(`Express server listening on port ${port} without TLS`);
+        });
+    }
 
 });
