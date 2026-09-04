@@ -23,5 +23,8 @@ export HTTPS_KEY_PATH=artifacts/cert/server.key
 export HTTPS_CERT_PATH=artifacts/cert/server.crt
 ```
 
-`server.js` reads those variables in the HTTPS section. Keep the generated key
-readable only by your user, and never add it to a commit, image, or PR.
+`server.js` reads those variables in the HTTPS section. Both paths must point
+inside this `artifacts/cert` directory: the application canonicalises them
+(symlinks included) and refuses anything that resolves outside it, then falls
+back to the plain HTTP listener. Keep the generated key readable only by your
+user, and never add it to a commit, image, or PR.

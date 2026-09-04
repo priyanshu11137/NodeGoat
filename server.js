@@ -23,6 +23,33 @@ const { port, db, cookieSecret, cookieDomain, sessionMaxAge } = require("./confi
 // TLS material is never committed: provide the paths through the
 // HTTPS_KEY_PATH / HTTPS_CERT_PATH environment variables and generate a local
 // development pair as described in artifacts/cert/README.md
+//
+// Fix for A1 - Injection / CWE-22 Path Traversal: those two variables are
+// external input, so they are never handed to the filesystem as supplied.
+// Only files inside the dedicated TLS material directory may be read: each
+// candidate is resolved and then canonicalised with "fs.realpathSync" (which
+// also collapses symlinks) and the canonical result must still be located
+// under the canonical base directory. Traversal sequences ("../../etc/shadow"),
+// absolute paths outside the base and symlinks escaping it are rejected, and
+// the server keeps serving over plain HTTP instead of reading the file.
+const TLS_MATERIAL_DIR = path.join(__dirname, "artifacts", "cert");
+
+// Returns the canonical path of an existing file inside TLS_MATERIAL_DIR.
+// Throws when the file does not exist or escapes that directory.
+const resolveTlsMaterialPath = (configuredPath) => {
+    // Canonicalise the allow-listed directory first so both sides of the
+    // containment check below are real, symlink-free paths.
+    const baseDir = fs.realpathSync(TLS_MATERIAL_DIR);
+    const candidate = fs.realpathSync(path.resolve(__dirname, configuredPath));
+    const relative = path.relative(baseDir, candidate);
+    if (!relative || relative.split(path.sep).indexOf("..") !== -1 || path.isAbsolute(relative)) {
+        throw new Error(`path "${configuredPath}" is outside ${TLS_MATERIAL_DIR}`);
+    }
+    // Rebuild the accepted path from the validated components so the value
+    // handed to "readFileSync" can only ever be baseDir + a contained name.
+    return path.join(baseDir, relative);
+};
+
 const loadHttpsOptions = () => {
     const keyPath = process.env.HTTPS_KEY_PATH;
     const certPath = process.env.HTTPS_CERT_PATH;
@@ -31,14 +58,14 @@ const loadHttpsOptions = () => {
     }
     try {
         return {
-            key: fs.readFileSync(path.resolve(__dirname, keyPath)),
-            cert: fs.readFileSync(path.resolve(__dirname, certPath)),
+            key: fs.readFileSync(resolveTlsMaterialPath(keyPath)),
+            cert: fs.readFileSync(resolveTlsMaterialPath(certPath)),
             // Modern TLS defaults: refuse the obsolete SSLv3/TLS 1.0/1.1 protocols
             // instead of pinning a single (soon deprecated) version
             minVersion: "TLSv1.2"
         };
     } catch (err) {
-        console.log(`Error: TLS: cannot read the configured key/certificate (${err.code})`);
+        console.log(`Error: TLS: cannot read the configured key/certificate (${err.code || err.message})`);
         return null;
     }
 };
