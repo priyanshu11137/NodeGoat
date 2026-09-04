@@ -15,6 +15,18 @@ const sessionTimeoutMinutes = Number.isInteger(configuredSessionTimeout) && conf
     configuredSessionTimeout :
     60;
 const sessionMaxAge = sessionTimeoutMinutes * 60 * 1000; // express-session expects milliseconds
+// Absolute cap on the lifetime of a single session. "sessionMaxAge" is only an
+// idle window: express-session touches the session on every request, sliding
+// both the cookie and the store expiry forward, so a session that is kept warm
+// never expires. Override SESSION_ABSOLUTE_TIMEOUT_MINUTES per deployment;
+// a value that is not a positive whole number of minutes falls back to the
+// default so a bad value can never disable the cap.
+const configuredSessionAbsoluteTimeout = Number.parseInt(process.env.SESSION_ABSOLUTE_TIMEOUT_MINUTES, 10);
+const sessionAbsoluteTimeoutMinutes =
+    Number.isInteger(configuredSessionAbsoluteTimeout) && configuredSessionAbsoluteTimeout > 0 ?
+    configuredSessionAbsoluteTimeout :
+    480;
+const sessionAbsoluteMaxAge = sessionAbsoluteTimeoutMinutes * 60 * 1000;
 // Whether the session cookie must carry the "Secure" attribute, so the session
 // identifier can never travel in cleartext. Secure-on by default, and it fails
 // secure: production - and an unset NODE_ENV on a real host - stay on. It is
@@ -42,6 +54,7 @@ module.exports = {
     cookieDomain,
     cookieSecure,
     sessionMaxAge,
+    sessionAbsoluteMaxAge,
     cryptoKey: "a_secure_key_for_crypto_here",
     cryptoAlgo: "aes256",
     hostName,

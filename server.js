@@ -17,7 +17,15 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 // Application config
-const { port, db, cookieSecret, cookieDomain, cookieSecure, sessionMaxAge } = require("./config/config");
+const {
+    port,
+    db,
+    cookieSecret,
+    cookieDomain,
+    cookieSecure,
+    sessionMaxAge,
+    sessionAbsoluteMaxAge
+} = require("./config/config");
 
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing a secure HTTPS connection.
@@ -174,6 +182,28 @@ MongoClient.connect(db, (err, db) => {
         */
 
     }));
+
+    // Fix for CWE-613: "maxAge" above is only an idle window, which
+    // express-session slides forward on every request, so a session kept warm
+    // (e.g. with a stolen cookie) never expires. Cap the total lifetime server
+    // side too: past sessionAbsoluteMaxAge the session is replaced by a fresh
+    // unauthenticated one, whatever the client does with its cookie.
+    app.use((req, res, next) => {
+        if (!req.session) return next();
+        const startedAt = Number(req.session.startedAt);
+        if (!Number.isFinite(startedAt)) {
+            req.session.startedAt = Date.now();
+            return next();
+        }
+        if (Date.now() - startedAt < sessionAbsoluteMaxAge) return next();
+        // Regenerate rather than destroy: the request keeps a usable session, so
+        // the csrf middleware below still gets a (new) secret to work from.
+        return req.session.regenerate((err) => {
+            if (err) return next(err);
+            req.session.startedAt = Date.now();
+            return next();
+        });
+    });
 
     // Fix for A8 - CSRF
     // Enable Express csrf protection. The token is derived from a secret kept in
