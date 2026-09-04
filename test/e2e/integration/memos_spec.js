@@ -46,4 +46,22 @@ describe("/memos behaviour", () => {
       .should("be.visible")
       .contains(text);
   });
+
+  it("Should reject a memo posted without a CSRF token", () => {
+    cy.userSignIn();
+    cy.visitPage("/memos");
+
+    // Same session, no "_csrf" field: the server side check must reject it.
+    cy.request({
+      method: "POST",
+      url: "/memos",
+      form: true,
+      body: {
+        memo: "Forged memo"
+      },
+      failOnStatusCode: false
+    })
+      .its("status")
+      .should("eq", 403);
+  });
 });
