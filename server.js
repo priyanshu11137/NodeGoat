@@ -16,7 +16,7 @@ const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
-const { port, db, cookieSecret, cookieDomain } = require("./config/config"); // Application config properties
+const { port, db, cookieSecret, cookieDomain, sessionMaxAge } = require("./config/config"); // Application config
 
 // Fix for A6-Sensitive Data Exposure
 // Load keys for establishing a secure HTTPS connection.
@@ -111,7 +111,15 @@ MongoClient.connect(db, (err, db) => {
             // browser default (the directory of the requesting URL). The app
             // serves authenticated pages from several top level paths, so the
             // session cookie is scoped to the application root.
-            path: "/"
+            path: "/",
+            // Fix for A3/A5 - bound the session lifetime instead of issuing a
+            // cookie that lives for the whole browser session. "maxAge" is the
+            // option express-session actually honours: it derives the cookie
+            // "Expires"/"Max-Age" attribute from it for every new session and
+            // expires the server side session at the same time. A literal
+            // "expires" date would be evaluated once at start-up and shared by
+            // all sessions, so it is deliberately not used here.
+            maxAge: sessionMaxAge
         }
 
         /*
