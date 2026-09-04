@@ -108,6 +108,19 @@ MongoClient.connect(db, (err, db) => {
             // client side script. Without "httpOnly" any injected JavaScript
             // can read document.cookie and hijack the session.
             httpOnly: true,
+            // Fix for A6 - Sensitive Data Exposure: never let the session
+            // identifier travel in cleartext. express-session honours the
+            // special value "auto" (since 1.11): the "Secure" attribute is set
+            // whenever the request is served over TLS (req.secure) and omitted
+            // on a plain HTTP connection, so the cookie is protected as soon as
+            // HTTPS_KEY_PATH/HTTPS_CERT_PATH are configured below without
+            // breaking a local/CI run over http://localhost - a hardcoded
+            // "true" there would make the browser drop the cookie and silently
+            // kill every login. When TLS is terminated by a proxy, configure
+            // Express "trust proxy" for that proxy only; it is deliberately not
+            // enabled here because a blanket trust would let any client spoof
+            // X-Forwarded-Proto.
+            secure: "auto",
             // Restrict the session cookie to the configured host so it is not
             // shared with sibling sub-domains
             domain: cookieDomain,
