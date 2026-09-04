@@ -66,10 +66,29 @@ const index = (app, db) => {
     app.get("/memos", isLoggedIn, memosHandler.displayMemos);
     app.post("/memos", isLoggedIn, memosHandler.addMemos);
 
+    // Destinations the learning resources link is allowed to send users to.
+    // Add new learning resources here; anything not listed is refused.
+    const allowedLearnDestinations = [
+        "/dashboard",
+        "https://www.khanacademy.org/economics-finance-domain/core-finance" +
+            "/investment-vehicles-tutorial/ira-401ks/v/traditional-iras"
+    ];
+
+    // Fallback used when the requested destination is missing or not allowed.
+    const defaultLearnDestination = "/dashboard";
+
     // Handle redirect for learning resources link
     app.get("/learn", isLoggedIn, (req, res) => {
-        // Insecure way to handle redirects by taking redirect url from query string
-        return res.redirect(req.query.url);
+        // The query parameter only selects an entry from the server side allow
+        // list, it never becomes the redirect target itself. Unknown, external,
+        // protocol relative ("//evil.tld") and CRLF laden values all miss the
+        // list and fall back to an in-app destination, so this endpoint cannot
+        // be abused as an open redirect.
+        const requestedIndex = allowedLearnDestinations.indexOf(req.query.url);
+        const destination = requestedIndex === -1 ?
+            defaultLearnDestination :
+            allowedLearnDestinations[requestedIndex];
+        return res.redirect(destination);
     });
 
     // Research Page
