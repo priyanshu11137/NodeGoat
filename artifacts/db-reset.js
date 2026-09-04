@@ -22,11 +22,9 @@ const useHashedPasswords = process.env.SEED_BCRYPT_PASSWORDS === "true";
 // from the environment. Locally (development/test) it falls back to the demo
 // value documented in README.md so `npm run db:seed` and the e2e suite keep
 // working; any other environment must supply the variable explicitly.
-const seedPassword = (envVar, localDefault) => {
-    const fromEnv = process.env[envVar];
-
+const seedPassword = (fromEnv, envVarName, localDefault) => {
     if (!fromEnv && !isLocalEnv) {
-        console.log(`ERROR: ${envVar} must be set to seed the "${finalEnv}" environment`);
+        console.log(`ERROR: ${envVarName} must be set to seed the "${finalEnv}" environment`);
         process.exit(1);
     }
 
@@ -42,7 +40,7 @@ const USERS_TO_INSERT = [
         "userName": "admin",
         "firstName": "Node Goat",
         "lastName": "Admin",
-        "password": seedPassword("SEED_ADMIN_PASSWORD", "Admin_123"),
+        "password": seedPassword(process.env.SEED_ADMIN_PASSWORD, "SEED_ADMIN_PASSWORD", "Admin_123"),
         "isAdmin": true
     }, {
         "_id": 2,
@@ -50,14 +48,14 @@ const USERS_TO_INSERT = [
         "firstName": "John",
         "lastName": "Doe",
         "benefitStartDate": "2030-01-10",
-        "password": seedPassword("SEED_USER1_PASSWORD", "User1_123")
+        "password": seedPassword(process.env.SEED_USER1_PASSWORD, "SEED_USER1_PASSWORD", "User1_123")
     }, {
         "_id": 3,
         "userName": "user2",
         "firstName": "Will",
         "lastName": "Smith",
         "benefitStartDate": "2025-11-30",
-        "password": seedPassword("SEED_USER2_PASSWORD", "User2_123")
+        "password": seedPassword(process.env.SEED_USER2_PASSWORD, "SEED_USER2_PASSWORD", "User2_123")
     }];
 
 const tryDropCollection = (db, name) => {
