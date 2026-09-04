@@ -7,7 +7,32 @@
 // NODE_ENV=production node artifacts/db-reset.js
 
 const { MongoClient } = require("mongodb");
+const bcrypt = require("bcrypt-nodejs");
 const { db } = require("../config/config");
+
+const finalEnv = (process.env.NODE_ENV || "development").toLowerCase();
+const isLocalEnv = ["development", "test"].indexOf(finalEnv) !== -1;
+
+// Set SEED_BCRYPT_PASSWORDS=true to seed one way bcrypt hashes instead of
+// plaintext (use it together with the A2 - Broken Auth fix in
+// app/data/user-dao.js, which is what compares the hash on login).
+const useHashedPasswords = process.env.SEED_BCRYPT_PASSWORDS === "true";
+
+// No credential material is stored in this file: every seeded password is read
+// from the environment. Locally (development/test) it falls back to the demo
+// value documented in README.md so `npm run db:seed` and the e2e suite keep
+// working; any other environment must supply the variable explicitly.
+const seedPassword = (fromEnv, envVarName, localDefault) => {
+    if (!fromEnv && !isLocalEnv) {
+        console.log(`ERROR: ${envVarName} must be set to seed the "${finalEnv}" environment`);
+        process.exit(1);
+    }
+
+    const password = fromEnv || localDefault;
+
+    // Hashes are derived at run time; a precomputed hash must never be committed.
+    return useHashedPasswords ? bcrypt.hashSync(password, bcrypt.genSaltSync()) : password;
+};
 
 const USERS_TO_INSERT = [
     {
@@ -15,8 +40,7 @@ const USERS_TO_INSERT = [
         "userName": "admin",
         "firstName": "Node Goat",
         "lastName": "Admin",
-        "password": "Admin_123",
-        //"password" : "$2a$10$8Zo/1e8KM8QzqOKqbDlYlONBOzukWXrM.IiyzqHRYDXqwB3gzDsba", // Admin_123
+        "password": seedPassword(process.env.SEED_ADMIN_PASSWORD, "SEED_ADMIN_PASSWORD", "Admin_123"),
         "isAdmin": true
     }, {
         "_id": 2,
@@ -24,16 +48,14 @@ const USERS_TO_INSERT = [
         "firstName": "John",
         "lastName": "Doe",
         "benefitStartDate": "2030-01-10",
-        "password": "User1_123"
-        // "password" : "$2a$10$RNFhiNmt2TTpVO9cqZElb.LQM9e1mzDoggEHufLjAnAKImc6FNE86",// User1_123
+        "password": seedPassword(process.env.SEED_USER1_PASSWORD, "SEED_USER1_PASSWORD", "User1_123")
     }, {
         "_id": 3,
         "userName": "user2",
         "firstName": "Will",
         "lastName": "Smith",
         "benefitStartDate": "2025-11-30",
-        "password": "User2_123"
-        //"password" : "$2a$10$Tlx2cNv15M0Aia7wyItjsepeA8Y6PyBYaNdQqvpxkIUlcONf1ZHyq", // User2_123
+        "password": seedPassword(process.env.SEED_USER2_PASSWORD, "SEED_USER2_PASSWORD", "User2_123")
     }];
 
 const tryDropCollection = (db, name) => {
@@ -46,6 +68,9 @@ const tryDropCollection = (db, name) => {
         });
     });
 };
+
+// Seed passwords can come from the environment, so they are never logged.
+const withoutPassword = (user) => ({ ...user, password: "[redacted]" });
 
 const parseResponse = (err, res, comm) => {
     if (err) {
@@ -96,7 +121,7 @@ MongoClient.connect(db, (err, db) =>  {
 
         // insert admin and test users
         console.log("Users to insert:");
-        USERS_TO_INSERT.forEach((user) => console.log(JSON.stringify(user)));
+        USERS_TO_INSERT.forEach((user) => console.log(JSON.stringify(withoutPassword(user))));
 
         usersCol.insertMany(USERS_TO_INSERT, (err, data) => {
             const finalAllocations = [];
@@ -107,7 +132,10 @@ MongoClient.connect(db, (err, db) =>  {
                 console.log(JSON.stringify(err));
                 process.exit(1);
             }
-            parseResponse(err, data, "users.insertMany");
+            parseResponse(err, {
+                inserted: data.ops.length,
+                users: data.ops.map(withoutPassword)
+            }, "users.insertMany");
 
             data.ops.forEach((user) => {
                 const stocks = Math.floor((Math.random() * 40) + 1);

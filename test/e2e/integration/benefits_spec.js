@@ -51,4 +51,22 @@ describe("/login behaviour", () => {
       .invoke("val")
       .should("eq", "2099-01-10");
   });
+
+  it("Should reject a benefits update posted without a CSRF token", () => {
+    cy.adminSignIn();
+    cy.visitPage("/benefits");
+
+    // Same session, no "_csrf" field: the server side check must reject it.
+    cy.request({
+      method: "POST",
+      url: "/benefits",
+      form: true,
+      body: {
+        benefitStartDate: "2099-12-31"
+      },
+      failOnStatusCode: false
+    })
+      .its("status")
+      .should("eq", 403);
+  });
 });

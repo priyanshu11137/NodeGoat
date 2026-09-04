@@ -3,6 +3,31 @@ const {
     environmentalScripts
 } = require("../../config/config");
 
+/* Contribution percentages are whole numbers within this inclusive range */
+const MIN_CONTRIBUTION_PERCENTAGE = 0;
+const MAX_CONTRIBUTION_PERCENTAGE = 100;
+const INTEGER_PATTERN = /^\d+$/;
+
+/*
+ * Safely converts an untrusted request value into a bounded integer.
+ * Returns NaN for anything that is not a plain, in-range integer so that
+ * the caller's existing validation/error-render path rejects it.
+ */
+function parseContributionPercentage(value) {
+    "use strict";
+
+    if (typeof value !== "string") return NaN;
+
+    const candidate = value.trim();
+    if (!INTEGER_PATTERN.test(candidate)) return NaN;
+
+    const parsed = Number.parseInt(candidate, 10);
+    if (!Number.isInteger(parsed)) return NaN;
+    if (parsed < MIN_CONTRIBUTION_PERCENTAGE || parsed > MAX_CONTRIBUTION_PERCENTAGE) return NaN;
+
+    return parsed;
+}
+
 /* The ContributionsHandler must be constructed with a connected db */
 function ContributionsHandler(db) {
     "use strict";
@@ -27,18 +52,11 @@ function ContributionsHandler(db) {
 
     this.handleContributionsUpdate = (req, res, next) => {
 
-        /*jslint evil: true */
-        // Insecure use of eval() to parse inputs
-        const preTax = eval(req.body.preTax);
-        const afterTax = eval(req.body.afterTax);
-        const roth = eval(req.body.roth);
+        // Submitted percentages are parsed and range-checked as integers, never evaluated as code
+        const preTax = parseContributionPercentage(req.body.preTax);
+        const afterTax = parseContributionPercentage(req.body.afterTax);
+        const roth = parseContributionPercentage(req.body.roth);
 
-        /*
-        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval
-        const preTax = parseInt(req.body.preTax);
-        const afterTax = parseInt(req.body.afterTax);
-        const roth = parseInt(req.body.roth);
-        */
         const {
             userId
         } = req.session;
