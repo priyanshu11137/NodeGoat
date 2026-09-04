@@ -11,7 +11,6 @@ const swig = require("swig");
 const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
 const fs = require("fs");
 const https = require("https");
-const path = require("path");
 const marked = require("marked");
 //const nosniff = require('dont-sniff-mimetype');
 const app = express(); // Web framework to handle routing requests
@@ -32,20 +31,15 @@ const {
 // committed: drop a locally generated "server.key"/"server.crt" pair into the
 // git-ignored artifacts/cert directory, see artifacts/cert/README.md
 //
-// Fix for A1 - Injection / CWE-22 Path Traversal: both locations are fixed
-// constants built from "__dirname" plus literal segments only. No external
-// input (environment, request, argv) takes part in the paths handed to "fs",
-// so there is nothing to sanitise and nothing to traverse with.
-const TLS_KEY_FILE = path.join(__dirname, "artifacts", "cert", "server.key");
-const TLS_CERT_FILE = path.join(__dirname, "artifacts", "cert", "server.crt");
-
 // Returns HTTPS options when both files exist and are readable, else null so
 // the caller can fall back to the plain listener without start-up failing.
 const loadHttpsOptions = () => {
     try {
+        // Fix for CWE-22 Path Traversal: the two paths below are fixed constants,
+        // "__dirname" plus literal segments - no external input reaches "fs".
         return {
-            key: fs.readFileSync(TLS_KEY_FILE),
-            cert: fs.readFileSync(TLS_CERT_FILE),
+            key: fs.readFileSync(`${__dirname}/artifacts/cert/server.key`),
+            cert: fs.readFileSync(`${__dirname}/artifacts/cert/server.crt`),
             // Modern TLS defaults: refuse the obsolete SSLv3/TLS 1.0/1.1 protocols
             // instead of pinning a single (soon deprecated) version
             minVersion: "TLSv1.2"
