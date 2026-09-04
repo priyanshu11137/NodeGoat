@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const UserDAO = require("../data/user-dao").UserDAO;
 const AllocationsDAO = require("../data/allocations-dao").AllocationsDAO;
 const {
@@ -135,6 +136,16 @@ function SessionHandler(db) {
         });
     };
 
+    // Fix for Observable Timing Discrepancy (CWE-208) - compare password material in
+    // constant time instead of with a short-circuiting string comparison.
+    // Both values are hashed first, so timingSafeEqual always receives two equal-length
+    // buffers: it can never throw, and no length pre-check (length oracle) is needed.
+    const secretsMatch = (expected, actual) => {
+        const expectedDigest = crypto.createHash("sha256").update(String(expected), "utf8").digest();
+        const actualDigest = crypto.createHash("sha256").update(String(actual), "utf8").digest();
+        return crypto.timingSafeEqual(expectedDigest, actualDigest);
+    };
+
     const validateSignup = (userName, firstName, lastName, password, verify, email, errors) => {
 
         const USER_RE = /^.{1,20}$/;
@@ -173,7 +184,7 @@ function SessionHandler(db) {
                 " including numbers, lowercase and uppercase letters.";
             return false;
         }
-        if (password !== verify) {
+        if (!secretsMatch(password, verify)) {
             errors.verifyError = "Password must match";
             return false;
         }
