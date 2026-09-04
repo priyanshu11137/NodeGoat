@@ -106,7 +106,12 @@ MongoClient.connect(db, (err, db) => {
         cookie: {
             // Restrict the session cookie to the configured host so it is not
             // shared with sibling sub-domains
-            domain: cookieDomain
+            domain: cookieDomain,
+            // Set the cookie scope explicitly instead of relying on the
+            // browser default (the directory of the requesting URL). The app
+            // serves authenticated pages from several top level paths, so the
+            // session cookie is scoped to the application root.
+            path: "/"
         }
 
         /*
