@@ -104,6 +104,10 @@ MongoClient.connect(db, (err, db) => {
         saveUninitialized: true,
         resave: true,
         cookie: {
+            // Fix for A3 - XSS: keep the session identifier out of reach of
+            // client side script. Without "httpOnly" any injected JavaScript
+            // can read document.cookie and hijack the session.
+            httpOnly: true,
             // Restrict the session cookie to the configured host so it is not
             // shared with sibling sub-domains
             domain: cookieDomain,
