@@ -27,5 +27,10 @@ test/e2e/videos/
 .env.local
 .env
 
+# ignore TLS key and certificate material (generate locally, see artifacts/cert/README.md)
+*.key
+*.crt
+*.pem
+
 # ignore Snyk Code scanner files
 .dccache
